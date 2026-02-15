@@ -1,9 +1,8 @@
-// pages/Teacher/CreateExam.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 //import ExamMetadataForm from '../../components/Teacher/ExamMetadataForm';
 //import TestCaseManager from '../../components/Teacher/TestCaseManager';
 
-export default function CreateExam() {
+export default function ExamCreator() {
   const [examData, setExamData] = useState({
     title: '',
     description: '',
