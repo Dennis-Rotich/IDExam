@@ -1,23 +1,21 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow,globalShortcut,clipboard } = require('electron')
+const { glob } = require('fs')
 const path = require('path')
 
+const dev_mode = process.env.IS_DEV_MODE 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit()
 }
 
-//keeps from being locked in,change later
-const IS_DEV_MODE=true
-
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     title:'exam proctor system', 
-    kiosk:!IS_DEV_MODE,//full screen and locked down is not dev mode  
-    alwaysOnTop:!IS_DEV_MODE,//on top of all apps
+    kiosk:!dev_mode,//full screen and locked down is not dev mode  
+    alwaysOnTop:!dev_mode,//on top of all apps
     frame:false,//no close,minimize,maximize buttons
-    alwaysOnTop:!IS_DEV_MODE,
-    fullscreen:!IS_DEV_MODE,
+    fullscreen:!dev_mode,
     webPreferences: {
       preload:path.join(__dirname, 'preload.js'),
       contextIsolation:true,
@@ -30,9 +28,9 @@ const createWindow = () => {
 
    //prevent closing window
   mainWindow.on('close',(e)=>{
-    if(!IS_DEV_MODE){
+    if(!dev_mode){
       e.preventDefault()
-      console.log('is see you wanna leave')
+      console.log('i see you wanna leave')
     }
   })
 }
@@ -43,17 +41,20 @@ const createWindow = () => {
 app.whenReady().then(() => {
   createWindow()
 //block shortcuts to leave app
-  if (!IS_DEV_MODE){
+  if (!dev_mode){
     globalShortcut.register('Alt+Tab', () => { return false; });
     globalShortcut.register('Alt+F4', () => { return false; });
-    globalShortcut.register('CommandOrControl+Shift+I', () => { return false; }); // Block DevTools
+    globalShortcut.register('CommandOrControl+Shift+I', () => { return false; });// Block DevTools
+    globalShortcut.register('CommandOrControl+R', () => { return false; });// Block Refresh
+    globalShortcut.register('CommandOrControl+W', () => { return false; });// Block Close Window
+    globalShortcut.register('CommandOrControl+Q', () => { return false; });// Block Quit
+    globalShortcut.register('CommandOrControl+Tab', () => { return false; });// Block Switching tabs
+    globalShortcut.register('CommandOrControl+Escape', () => { return false; });// Block windoes taskbar popup
+    globalShortcut.register('CommandOrControl+Shift+Escape', () => { return false; });// Block Task Manager
+    globalShortcut.register('Escape', () => {app.quit();});// allow escape, but not in production
+
     }
-//press escape to exit in dev mode
-    if (IS_DEV_MODE){
-      globalShortcut.register('Escape', () => {
-        app.quit();
-      });
-    }
+
 })
 
 // Quit when all windows are closed.
