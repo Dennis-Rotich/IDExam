@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Student IDE (Client)</h2>
+    <p>Status: <span id="status">Connecting...</span></p>
+    
+    <textarea id="editor" style="width: 100%; height: 300px; font-family: monospace;" placeholder="Write your code here..."></textarea>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const editor = document.getElementById('editor');
+        const status = document.getElementById('status');
+        let lastSent = 0;
+
+        // 1. Join as Student
+        socket.on('connect', () => {
+            status.textContent = "Connected (ID: " + socket.id + ")";
+            socket.emit('join_exam', 'student');
+        });
+
+        // 2. Capture Keypresses with Throttling
+        editor.addEventListener('input', () => {
+            const now = Date.now();
+            
+            // Only send if 100ms have passed since last send
+            if (now - lastSent > 100) {
+                const code = editor.value;
+                socket.emit('code_change', code);
+                lastSent = now;
+            }
+        });
+    </script>
+</body>
+</html>
