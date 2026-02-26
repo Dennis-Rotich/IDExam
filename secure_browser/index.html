@@ -171,6 +171,36 @@
 
         </form>
     </div>
+    <div id="blur-warning" style="display: none;">
+        <div class="warning-content">
+            <h2>Exam Paused: Focus Lost</h2>
+            <p>You have navigated away from the exam window.</p>
+            <p>This action has been logged. Click here to resume.</p>
+        </div>
+    </div>
+
+    <style>
+    /* CSS to ensure the warning covers the entire exam */
+    #blur-warning {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.95);
+        color: white;
+        z-index: 9999; /* Ensure it is on top of everything */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    .warning-content {
+        background: #d9534f;
+        padding: 30px;
+        border-radius: 8px;
+    }
+    </style>
 
 </body>
 </html>

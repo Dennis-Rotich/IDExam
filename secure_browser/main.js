@@ -1,8 +1,9 @@
-const { app, BrowserWindow,globalShortcut,clipboard } = require('electron')
-const { glob } = require('fs')
+const { app, BrowserWindow,globalShortcut,clipboard,ipcMain } = require('electron')
+
 const path = require('path')
 
-const dev_mode = process.env.IS_DEV_MODE 
+
+const dev_mode = process.env.IS_DEV_MODE ==='false'
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit()
@@ -22,47 +23,55 @@ const createWindow = () => {
       nodeIntegration: false
     }
   })
-
    // and load the index.html of the app.
-  mainWindow.loadFile(path.join(__dirname, 'index.html'))
+mainWindow.loadFile(path.join(__dirname, 'index.html'))
 
-   //prevent closing window
-  mainWindow.on('close',(e)=>{
-    if(!dev_mode){
-      e.preventDefault()
-      console.log('i see you wanna leave')
-    }
+mainWindow.on('blur', () => {
+  console.log('OS detected focus lost.')
+  // You can force the renderer to show the warning screen via IPC
+  mainWindow.webContents.send('force-blur-warning')
+  });
+mainWindow.on('focus', () => {
+  console.log('OS detected focus regained.')
+  // Tell the renderer it's safe to resume
+  mainWindow.webContents.send('remove-blur-warning') 
   })
+
+if (!dev_mode) {
+  setInterval(() => clipboard.clear(), 1000)
+}  
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+function registerBlockers() {
+  const combos = [
+    'Alt+Tab','Alt+F4','CommandOrControl+Shift+I','CommandOrControl+R',
+    'CommandOrControl+W','CommandOrControl+Q','CommandOrControl+Tab',
+    'CommandOrControl+Escape','CommandOrControl+Shift+Escape',
+    'F11','F12','F5','F4','F10','F9'
+  ];
+  combos.forEach(accel => {
+    if (!globalShortcut.register(accel, () => false)) {
+      console.warn('could not register', accel);
+    }
+  });
+}
 app.whenReady().then(() => {
   createWindow()
-//block shortcuts to leave app
-  if (!dev_mode){
-    globalShortcut.register('Alt+Tab', () => { return false; });
-    globalShortcut.register('Alt+F4', () => { return false; });
-    globalShortcut.register('CommandOrControl+Shift+I', () => { return false; });// Block DevTools
-    globalShortcut.register('CommandOrControl+R', () => { return false; });// Block Refresh
-    globalShortcut.register('CommandOrControl+W', () => { return false; });// Block Close Window
-    globalShortcut.register('CommandOrControl+Q', () => { return false; });// Block Quit
-    globalShortcut.register('CommandOrControl+Tab', () => { return false; });// Block Switching tabs
-    globalShortcut.register('CommandOrControl+Escape', () => { return false; });// Block windoes taskbar popup
-    globalShortcut.register('CommandOrControl+Shift+Escape', () => { return false; });// Block Task Manager
-    globalShortcut.register('Escape', () => {app.quit();});// allow escape, but not in production
-
-    }
-
+   if (!dev_mode) registerBlockers()
 })
-
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit();
+    app.quit()
   }
 })
+//Add the usual activate handler so a new window is created if the dock icon is clicked.
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
 
 
 
