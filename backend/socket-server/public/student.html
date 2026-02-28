@@ -1,5 +1,14 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <script>var module = {};</script>
+
+    <script src="https://unpkg.com/fast-diff/diff.js"></script>
+
+    <script>var diff = module.exports;</script>
+
+    <script src="/socket.io/socket.io.js"></script>
+</head>
 <body>
     <h2>Student IDE (Client)</h2>
     <p>Status: <span id="status">Connecting...</span></p>
@@ -22,6 +31,7 @@
         // 2. Capture Keypresses with Throttling
         editor.addEventListener('input', () => {
             const now = Date.now();
+            console.log(editor.value);
             
             // Only send if 100ms have passed since last send
             if (now - lastSent > 100) {

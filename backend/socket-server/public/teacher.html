@@ -12,66 +12,98 @@
             color: #0f0; border: none; font-family: monospace; 
         }
     </style>
+    <script>var module = {};</script>
+
+    <script src="https://unpkg.com/fast-diff/diff.js"></script>
+    
+    <script>var diff = module.exports;</script>
+    
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
     <h2>Exam Proctor Dashboard</h2>
     <div id="grid"></div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        const grid = document.getElementById('grid');
+    const socket = io();
+    const grid = document.getElementById('grid');
+    
+    // We store the current text state for each student
+    const studentStates = {};
 
-        // 1. Join as Teacher
-        socket.on('connect', () => {
-            socket.emit('join_exam', 'teacher');
+    socket.on('connect', () => {
+        socket.emit('join_exam', 'teacher');
+    });
+
+    socket.on('student_joined', (id) => {
+        createStudentCard(id);
+    });
+
+    // 1. Handle Delta Updates
+    socket.on('student_delta', (data) => {
+        const { studentId, changes } = data;
+        
+        // Ensure student card exists
+        createStudentCard(studentId);
+        
+        // Retrieve current text (or empty string if new)
+        let currentText = studentStates[studentId] || "";
+        
+        // Apply changes to reconstruct the new text
+        let newText = "";
+        let cursor = 0;
+
+        // Iterate through the diff array: [ [mode, text], ... ]
+        // mode: 0 = equal (keep), 1 = insert, -1 = delete
+        changes.forEach(([mode, text]) => {
+            if (mode === 0) {
+                // Keep: Take characters from the current text
+                // Since 'fast-diff' returns the text segment, we just append it
+                newText += text;
+            } else if (mode === 1) {
+                // Insert: Add the new text
+                newText += text;
+            } 
+            // Delete (-1): We simply ignore the text from the old string, effectively deleting it
         });
 
-        // 2. Handle New Student Connection
-        socket.on('student_joined', (id) => {
-            createStudentCard(id);
-        });
+        // Update State
+        studentStates[studentId] = newText;
+        updateView(studentId, newText);
+    });
 
-        // 3. Handle Live Code Updates
-        socket.on('update_student_view', (data) => {
-            let card = document.getElementById(`card-${data.studentId}`);
-            
-            // If we missed the join event, create the card now
-            if (!card) {
-                createStudentCard(data.studentId);
-            }
+    // 2. Handle Full Sync (Safety Net)
+    socket.on('student_full_sync', (data) => {
+        const { studentId, code } = data;
+        createStudentCard(studentId);
+        studentStates[studentId] = code; // Hard overwrite
+        updateView(studentId, code);
+    });
 
-            // Update the specific textarea for this student
-            const textarea = document.getElementById(`code-${data.studentId}`);
-            textarea.value = data.code;
-            
-            // Visual flair: Flash border to show activity
-            textarea.style.borderColor = "red";
-            setTimeout(() => textarea.style.borderColor = "transparent", 200);
-        });
+    function createStudentCard(id) {
+        if (document.getElementById(`card-${id}`)) return;
+        
+        // Initialize state
+        studentStates[id] = "";
 
-        // 4. Handle Student Disconnect
-        socket.on('student_left', (id) => {
-            const card = document.getElementById(`card-${id}`);
-            if (card) {
-                card.style.opacity = "0.5";
-                card.innerHTML += "<br><strong>(OFFLINE)</strong>";
-            }
-        });
+        const div = document.createElement('div');
+        div.className = 'student-card';
+        div.id = `card-${id}`;
+        div.innerHTML = `
+            <h4>${id.substr(0,4)}</h4>
+            <textarea id="code-${id}" class="student-code" readonly></textarea>
+        `;
+        grid.appendChild(div);
+    }
 
-        // Helper to generate HTML dynamically
-        function createStudentCard(id) {
-            if (document.getElementById(`card-${id}`)) return; // No duplicates
-
-            const div = document.createElement('div');
-            div.className = 'student-card';
-            div.id = `card-${id}`;
-            div.innerHTML = `
-                <h4>Student: ${id.substr(0,4)}...</h4>
-                <textarea id="code-${id}" class="student-code" readonly></textarea>
-            `;
-            grid.appendChild(div);
+    function updateView(id, text) {
+        const textarea = document.getElementById(`code-${id}`);
+        if (textarea) {
+            textarea.value = text;
+            // Scroll to bottom to follow updates (optional)
+            textarea.scrollTop = textarea.scrollHeight;
         }
+    }
     </script>
 </body>
 </html>

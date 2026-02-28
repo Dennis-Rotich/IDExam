@@ -1,4 +1,4 @@
-const { log } = require('console');
+
 const express = require('express');
 const http = require('http')
 const {Server} = require('socket.io')
@@ -30,14 +30,22 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 2. The Pipeline: Receive Code -> Forward to Teacher
-    socket.on('code_change', (code)=>{
-        // ONLY send to teache dashboard
-        io.to(`${EXAM_ID}_dashboard`).emit('update_student_view', {
+    // Handle Lightweight updates
+    socket.on('code_delta', (data) => {
+        io.to(`${EXAM_ID}_dashboard`).emit('student_delta', {
             studentId: socket.id,
-            code: code,
-            timestamp: new Date().toISOString()
-        });
+            changes: data.changes
+        })
+        console.log(code);
+    });
+
+    // Handle Full Sync
+    socket.on('code_full_sync', (fullCode) => {
+        io.to(`${EXAM_ID}_dashboard`).emit('student_full_sync'), {
+            studentId: socket.id,
+            code: fullCode
+        }
+        console.log(code);
     })
 
     // Handle disconnection
