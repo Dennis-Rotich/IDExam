@@ -61,7 +61,7 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-4">
               <Link
-                to="/instructor/create"
+                to="/exam/23e01fba-7753-4b5c-8c0a-abd16640760d"
                 className="bg-[#00a3a3] hover:bg-[#008a8a] text-white hover:text-white px-6 py-2 rounded-full text-sm font-bold transition"
               >
                 Get Started
@@ -115,8 +115,7 @@ export default function LandingPage() {
       {/* Features Grid (Matching the Dark Grid Style) */}
       <section className="w-full bg-[#000] py-24 border-t border-slate-900">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-4xl font-bold mb-16">Features</h2>
-
+          <h2 className="text-4xl text-left  font-bold mb-16">Features</h2>
           <div className="flex flex-col lg:flex-row gap-12 items-start">
             {/* Left Side: Vertical Feature List */}
             <div className="w-full lg:w-2/1 flex flex-col gap-2">
