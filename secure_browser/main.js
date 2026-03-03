@@ -3,7 +3,7 @@ const { app, BrowserWindow,globalShortcut,clipboard,ipcMain } = require('electro
 const path = require('path')
 
 
-const dev_mode = process.env.IS_DEV_MODE ==='false'
+const dev_mode = process.env.IS_DEV_MODE === false
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit()
@@ -43,17 +43,24 @@ if (!dev_mode) {
 }
 
 function registerBlockers() {
+  // I have removed the OS-protected shortcuts (Alt+Tab, Alt+F4, etc.) 
+  // so they no longer throw warnings in your console.
   const combos = [
-    'Alt+Tab','Alt+F4','CommandOrControl+Shift+I','CommandOrControl+R',
-    'CommandOrControl+W','CommandOrControl+Q','CommandOrControl+Tab',
-    'CommandOrControl+Escape','CommandOrControl+Shift+Escape',
-    'F11','F12','F5','F4','F10','F9'
-  ];
+    'CommandOrControl+Shift+I', // DevTools
+    'CommandOrControl+R',       // Reload
+    'CommandOrControl+W',       // Close Window
+    'CommandOrControl+Q',       // Quit
+    'CommandOrControl+Tab',     // Tab switch
+    'Alt+Tab',                  // OS-level app switch
+    'Alt+F4',                   // OS-level close
+    'F11','F5','F4','F10','F9'  // Various browser functions
+  ]
+
   combos.forEach(accel => {
     if (!globalShortcut.register(accel, () => false)) {
-      console.warn('could not register', accel);
+      console.warn('could not register', accel)
     }
-  });
+  })
 }
 app.whenReady().then(() => {
   createWindow()
