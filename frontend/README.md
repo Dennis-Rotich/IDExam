@@ -130,7 +130,7 @@ Currently, ExamPage.tsx simulates an API fetch. To connect to a real backend, un
   [ ] Offline Mode: Implement localStorage fallback if the internet connection drops completely.
 
 
-### 🤝 Contributing
+## 🤝 Contributing
 
   1. Fork the Project
   2. Create your Feature Branch (git checkout -b feature/AmazingFeature)
@@ -139,3 +139,6 @@ Currently, ExamPage.tsx simulates an API fetch. To connect to a real backend, un
   5. Open a Pull Request
 
 ### Built by Isaiah Juma
+
+## 📄 License
+Distributed under the MIT License. See `LICENSE` for more information.
