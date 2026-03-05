@@ -13,6 +13,23 @@ app.use(express.static('public'));
 // Store active exam sessions
 const EXAM_ID = 'CS101';
 
+// Store student states in memory
+const studentStates = {};
+
+function createStudentCard(studentId) {
+    if (!studentStates[studentId]) {
+        studentStates[studentId] = "";
+    }
+}
+
+function updateView(studentId, newText) {
+    // Emit reconstructed text to the teacher's dashboard
+    io.to(`${EXAM_ID}_dashboard`).emit('student_update', {
+        studentId,
+        code: newText
+    });
+}
+
 //Socket.io Connection Handler
 io.on('connection', (socket) => {
     
@@ -30,22 +47,50 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle Lightweight updates
-    socket.on('code_delta', (data) => {
-        io.to(`${EXAM_ID}_dashboard`).emit('student_delta', {
-            studentId: socket.id,
-            changes: data.changes
-        })
-        console.log(code);
+    // 1. Handle Delta Updates (UPDATED WITH LOGS)
+    socket.on('student_delta', (data) => {
+        // LOG 1: Did we receive anything at all?
+        console.log("📥 DELTA RECEIVED from:", data.studentId);
+        console.log("Raw changes array:", data.changes);
+
+        // After — always has a valid ID
+        const studentId = data.studentId || socket.id;
+        const { changes } = data;
+                
+        if (!changes) {
+            console.error("❌ ERROR: Changes array is undefined. Check student.html emit.");
+            return;
+        }
+
+        createStudentCard(studentId);
+        
+        let newText = "";
+
+        // Reconstruct the text safely
+        changes.forEach((segment) => {
+            const mode = segment[0];
+            const text = segment[1];
+            
+            if (mode === 0 || mode === 1) { // 0 = keep, 1 = insert
+                newText += text;
+            }
+            // If mode is -1 (delete), we do nothing, which effectively removes it
+        });
+
+        // LOG 2: Did the reconstruction work?
+        console.log("🏗️ RECONSTRUCTED TEXT:", newText);
+
+        studentStates[studentId] = newText;
+        updateView(studentId, newText);
     });
 
     // Handle Full Sync
     socket.on('code_full_sync', (fullCode) => {
-        io.to(`${EXAM_ID}_dashboard`).emit('student_full_sync'), {
+        io.to(`${EXAM_ID}_dashboard`).emit('student_full_sync', {
             studentId: socket.id,
             code: fullCode
-        }
-        console.log(code);
+        })
+        console.log(fullCode);
     })
 
     // Handle disconnection
@@ -53,6 +98,10 @@ io.on('connection', (socket) => {
         // Notify teacher if student leaves
         io.to(`${EXAM_ID}_dashboard`).emit('student_left', socket.id);
     });
+})
+
+app.get('/',(req,res)=>{
+    res.send('API WORKING WELL')
 })
 
 // Start the server

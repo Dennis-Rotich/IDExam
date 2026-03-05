@@ -1,14 +1,5 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <script>var module = {};</script>
-
-    <script src="https://unpkg.com/fast-diff/diff.js"></script>
-
-    <script>var diff = module.exports;</script>
-
-    <script src="/socket.io/socket.io.js"></script>
-</head>
 <body>
     <h2>Student IDE (Client)</h2>
     <p>Status: <span id="status">Connecting...</span></p>
@@ -16,30 +7,55 @@
     <textarea id="editor" style="width: 100%; height: 300px; font-family: monospace;" placeholder="Write your code here..."></textarea>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/fast-diff/diff.js"></script>
     <script>
-        const socket = io();
-        const editor = document.getElementById('editor');
-        const status = document.getElementById('status');
-        let lastSent = 0;
+    const socket = io();
+    const editor = document.getElementById('editor');
+    const status = document.getElementById('status');
+    
+    // We must track the last text we successfully sent to the server
+    let lastSentText = ""; 
+    let isSyncing = false;
 
-        // 1. Join as Student
-        socket.on('connect', () => {
-            status.textContent = "Connected (ID: " + socket.id + ")";
-            socket.emit('join_exam', 'student');
+    socket.on('connect', () => {
+        status.textContent = "Connected (ID: " + socket.id + ")";
+        socket.emit('join_exam', 'student');
+    });
+
+    // Function to calculate and send changes
+    function sendDelta() {
+        const currentText = editor.value;
+        
+        // If no change, do nothing
+        if (currentText === lastSentText) return;
+
+        // 1. Calculate the difference
+        // Returns array like: [[0, "Hello"], [1, " World"], [-1, "!"]]
+        // 0=Equal, 1=Insert, -1=Delete
+        const changes = diff(lastSentText, currentText);
+
+        // 2. Emit ONLY the changes
+        socket.emit('code_delta', {
+            changes: changes,
+            timestamp: Date.now()
         });
 
-        // 2. Capture Keypresses with Throttling
-        editor.addEventListener('input', () => {
-            const now = Date.now();
-            console.log(editor.value);
-            
-            // Only send if 100ms have passed since last send
-            if (now - lastSent > 100) {
-                const code = editor.value;
-                socket.emit('code_change', code);
-                lastSent = now;
-            }
-        });
-    </script>
+        // 3. Update our tracker
+        lastSentText = currentText;
+    }
+
+    // Trigger on input
+    editor.addEventListener('input', () => {
+        // Debounce/Throttle is still good, but less critical with Deltas
+        // Let's run it immediately for responsiveness, or throttle slightly
+        setTimeout(sendDelta, 10);
+    });
+
+    // SAFETY NET: Force a full sync every 10 seconds
+    setInterval(() => {
+        socket.emit('code_full_sync', editor.value);
+    }, 10000);
+
+</script>
 </body>
 </html>

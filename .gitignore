@@ -4,3 +4,5 @@
 
 # Ignore ALL node_modules everywhere in the project (easiest)
 **/node_modules/
+
+**/test/
