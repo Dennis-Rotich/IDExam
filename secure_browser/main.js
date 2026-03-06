@@ -1,17 +1,18 @@
+require('dotenv').config()
 const { app, BrowserWindow,globalShortcut,clipboard,ipcMain } = require('electron')
 
 const path = require('path')
 
 
-const dev_mode = process.env.IS_DEV_MODE === false
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
-  app.quit()
-}
+const dev_mode = process.env.IS_DEV_MODE === 'false'
+let mainWindow = null  // Global reference
+let violationCount = 0
+const MAX_VIOLATIONS = 3
+
 
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
     title:'exam proctor system', 
     kiosk:!dev_mode,//full screen and locked down is not dev mode  
     alwaysOnTop:!dev_mode,//on top of all apps
@@ -38,8 +39,29 @@ mainWindow.on('focus', () => {
   })
 
 if (!dev_mode) {
-  setInterval(() => clipboard.clear(), 1000)
+  setInterval(() => clipboard.writeText(''), 1000)
 }  
+}
+
+ipcMain.on('log-proctoring-event', (event, violation) => {
+  violationCount++
+  console.log(`Violation logged: ${violation.type}, Count: ${violationCount}`)
+  if (violationCount >= MAX_VIOLATIONS) {
+    if (mainWindow) {
+        mainWindow.webContents.send('exam-terminated', { reason: 'Too many violations' })
+        // Optional: delay the close slightly so the user sees the message
+        setTimeout(() => mainWindow.close(), 3000) 
+    }
+  }
+})
+ipcMain.on('exam-finished', (event, answers) => {
+  console.log('Exam submitted with answers:', answers)
+  // TODO: Send answers to server or save locally
+})
+
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (require('electron-squirrel-startup')) {  // eslint-disable-line global-require
+  app.quit()
 }
 
 function registerBlockers() {
@@ -62,6 +84,20 @@ function registerBlockers() {
     }
   })
 }
+
+
+ipcMain.on('violation-logged', (event, violation) => {
+  violationCount++
+  if (violationCount >= MAX_VIOLATIONS) {
+    mainWindow.webContents.send('exam-terminated', { reason: 'Too many violations' })
+    mainWindow.close()
+  }
+})
+
+ipcMain.on('exam-finished', (event, answers) => {
+  console.log('Exam submitted with answers:', answers)
+  // TODO: Send answers to server or save locally
+})
 app.whenReady().then(() => {
   createWindow()
    if (!dev_mode) registerBlockers()
@@ -75,9 +111,9 @@ app.on('window-all-closed', () => {
 //Add the usual activate handler so a new window is created if the dock icon is clicked.
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    createWindow()
   }
-});
+})
 
 
 
