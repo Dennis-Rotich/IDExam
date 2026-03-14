@@ -1,55 +1,53 @@
-{/* ... inside your TestContext === "testresults" block ... 
-<div className="p-4 space-y-6">
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div className="p-4 rounded-xl bg-[#252525] border border-[#333] flex items-center justify-between">
-      <div>
-        <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Overall Status</p>
-        <p className={`text-sm font-bold mt-1 ${activeData.results.testResults.every(r => r.passed) ? 'text-green-500' : 'text-red-500'}`}>
-          {activeData.results.testResults.every(r => r.passed) ? "All Tests Passed" : "Partial Failure"}
-        </p>
-      </div>
-      <div className="h-10 w-10 rounded-full bg-black/20 flex items-center justify-center border border-[#333]">
-        {activeData.results.testResults.every(r => r.passed) ? <CircleCheck className="text-green-500" /> : <CircleAlert className="text-red-500" />}
-      </div>
-    </div>
-    
-    <div className="p-4 rounded-xl bg-[#252525] border border-[#333]">
-      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Success Rate</p>
-      <div className="flex items-end gap-2 mt-1">
-        <p className="text-xl font-mono text-white">
-          {activeData.results.testResults.filter(r => r.passed).length} / {activeData.results.testResults.length}
-        </p>
-        <p className="text-[10px] text-slate-400 mb-1 leading-none">cases passed</p>
-      </div>
-    </div>
-  </div>
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Button } from "../ui/button";
+import { TestCaseEditor } from "./TestCaseEditor";
 
-  <div className="flex flex-wrap gap-2">
-    {activeData.results.testResults.map((res) => (
-      <div
-        key={res.id}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-          res.passed 
-            ? "bg-green-500/5 border-green-500/20 text-green-500" 
-            : "bg-red-500/5 border-red-500/20 text-red-500"
-        }`}
-      >
-        <span className="text-[10px] font-mono font-bold opacity-60">#{res.id}</span>
-        {res.passed ? <CircleCheck size={14} /> : <CircleAlert size={14} />}
-      </div>
-    ))}
-  </div>
+export function TestCaseManager() {
+  const [testCases, setTestCases] = useState([
+    { id: 1, input: "2 3", output: "5", isHidden: false },
+    { id: 2, input: "-1 5", output: "4", isHidden: true },
+  ]);
 
-  <div className="pt-2">
-    <div className="flex items-center justify-between mb-2 px-1">
-       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Execution Logs</span>
-       <button className="text-[10px] text-blue-400 hover:underline">Copy Trace</button>
-    </div>
-    <Terminal
-      output={activeData.results.output}
-      executionTime={activeData.results.executionTime} // Fixed: was passing output as time
-      isLoading={false}
-    />
-  </div>
-</div>
-*/}
+  const addTestCase = () => {
+    setTestCases([...testCases, { id: Date.now(), input: "", output: "", isHidden: true }]);
+  };
+
+  const removeTestCase = (id: number) => {
+    setTestCases(testCases.filter((tc) => tc.id !== id));
+  };
+
+  const updateTestCase = (id: number, field: string, value: string | boolean) => {
+    setTestCases(testCases.map(tc => tc.id === id ? { ...tc, [field]: value } : tc));
+  };
+
+  return (
+    <Card className="border-muted bg-muted/10">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Test Cases</CardTitle>
+          <CardDescription>Define inputs and expected outputs. Hidden cases prevent hard-coding.</CardDescription>
+        </div>
+        <Button variant="default" size="sm" onClick={addTestCase}>
+          <Plus className="w-4 h-4 mr-2" /> Add Case
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {testCases.map((tc) => (
+          <TestCaseEditor 
+            key={tc.id} 
+            {...tc} 
+            onRemove={removeTestCase} 
+            onUpdate={updateTestCase} 
+          />
+        ))}
+        {testCases.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+            No test cases defined. Click "Add Case" to start.
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

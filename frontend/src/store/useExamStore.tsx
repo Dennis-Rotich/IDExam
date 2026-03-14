@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { EXAM_QUESTIONS } from "../data/questions"; // Only needed for initial state
+// import { EXAM_QUESTIONS } from "../data/questions"; // Only needed for initial state
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -36,12 +36,12 @@ export const useExamStore = create<ExamStore>((set, get) => ({
   setQuestions: (fetchedQuestions) => 
     set({ questions: fetchedQuestions, isLoading: false }),
 
-  // THE FIX: This now updates the Index.
   // We don't need to store 'currentQuestion' object separately. 
   // We can just derive it from questions[index] in the UI.
   setCurrentQuestionIndex: (index: number) => 
     set({ currentQuestionIndex: index }),
 
+  //updates the 'code' for currentQuestionIndex
   updateCode: (newCode) =>
     set((state) => {
       // Safety check
@@ -58,6 +58,7 @@ export const useExamStore = create<ExamStore>((set, get) => ({
       return { questions: newQuestions };
     }),
 
+  //update zustand's save status
   setSaveStatus: (status) => set({ saveStatus: status }),
 
   getCurrentQuestion: () => {

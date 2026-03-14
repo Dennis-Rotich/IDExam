@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Editor, type OnMount } from "@monaco-editor/react";
 import { useExamStore } from "../../store/useExamStore";
 

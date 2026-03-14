@@ -1,35 +1,48 @@
-// src/components/Teacher/TestCaseEditor.jsx
-export default function TestCaseEditor({ testCases, setTestCases }) {
-  const addRow = () => {
-    setTestCases([...testCases, { input: '', output: '', isHidden: false }]);
-  };
+import { Trash } from "lucide-react";
+import { Textarea } from "../ui/textarea";
+import { Button } from "../ui/button";
+import { ValidationToggle } from "./ValidationToggle";
 
+interface TestCaseProps {
+  id: number;
+  input: string;
+  output: string;
+  isHidden: boolean;
+  onRemove: (id: number) => void;
+  onUpdate: (id: number, field: string, value: string | boolean) => void;
+}
+
+export function TestCaseEditor({ id, input, output, isHidden, onRemove, onUpdate }: TestCaseProps) {
   return (
-    <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-      <h3 className="text-lg font-semibold mb-4">Test Cases</h3>
-      {testCases.map((tc, index) => (
-        <div key={index} className="flex gap-4 mb-3 items-end">
-          <div className="flex-1">
-            <label className="text-xs text-slate-500">Input</label>
-            <textarea className="w-full border rounded p-2 text-sm bg-slate-50" value={tc.input} />
-          </div>
-          <div className="flex-1">
-            <label className="text-xs text-slate-500">Expected Output</label>
-            <textarea className="w-full border rounded p-2 text-sm bg-slate-50" value={tc.output} />
-          </div>
-          <button className="text-red-500 p-2">Delete</button>
-        </div>
-      ))}
-      <button onClick={addRow} className="mt-2 text-blue-600 font-medium">+ Add Test Case</button>
+    <div className="flex items-start gap-4 p-4 border rounded-lg bg-card shadow-sm">
+      <div className="flex-1 space-y-2">
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Input (stdin)</label>
+        <Textarea 
+          value={input}
+          onChange={(e) => onUpdate(id, "input", e.target.value)}
+          className="font-mono text-sm h-24 resize-none bg-muted/20" 
+          placeholder="e.g. 5\n1 2 3 4 5"
+        />
+      </div>
+      <div className="flex-1 space-y-2">
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Expected Output (stdout)</label>
+        <Textarea 
+          value={output}
+          onChange={(e) => onUpdate(id, "output", e.target.value)}
+          className="font-mono text-sm h-24 resize-none bg-muted/20" 
+          placeholder="e.g. 15"
+        />
+      </div>
+      <div className="flex flex-col items-center gap-3 pt-6">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10" onClick={() => onRemove(id)}>
+          <Trash className="w-4 h-4" />
+        </Button>
+        <ValidationToggle 
+          id={`hidden-${id}`} 
+          checked={isHidden} 
+          onCheckedChange={(val) => onUpdate(id, "isHidden", val)} 
+        />
+      </div>
     </div>
   );
 }
-
-/* 
-Logic: How the Instructor "Generates" Them
-1. There are two ways an instructor "generates" these:
-2. Manual Entry: The form above.
-3. Scripted Generation (Advanced): If the instructor writes a 
-"Solution Script," you can add a button that runs that script against 
-the "Inputs" to automatically populate the "Expected Outputs."
-*/
