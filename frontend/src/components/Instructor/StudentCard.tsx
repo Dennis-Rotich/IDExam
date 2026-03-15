@@ -1,16 +1,19 @@
-import { AlertTriangle, CheckCircle2, MonitorOff, Video, MessageSquare, EyeOff } from "lucide-react";
+import { AlertTriangle, CheckCircle2, MessageSquare, EyeOff, Keyboard, ClipboardPaste, MousePointer2 } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { Progress } from "../ui/progress";
 
 export interface ProctorSession {
   id: string;
   studentName: string;
-  progress: string;
+  progress: number;
+  progressText: string;
   status: "clear" | "warning" | "critical";
   alerts: number;
   lastAlert?: string;
-  cameraActive: boolean;
+  typingStatus: "active" | "idle" | "pasting";
+  recentCode: string;
 }
 
 export function StudentCard({ session }: { session: ProctorSession }) {
@@ -32,6 +35,15 @@ export function StudentCard({ session }: { session: ProctorSession }) {
     }
   };
 
+  const getTelemetryIcon = (typingStatus: string) => {
+    switch (typingStatus) {
+      case "active": return <Keyboard className="w-3 h-3 text-emerald-500 mr-1" />;
+      case "pasting": return <ClipboardPaste className="w-3 h-3 text-red-500 mr-1 animate-pulse" />;
+      case "idle": return <MousePointer2 className="w-3 h-3 text-amber-500 mr-1" />;
+      default: return null;
+    }
+  };
+
   return (
     <Card className={`border-2 transition-all ${session.status === 'critical' ? 'border-red-500/50 shadow-sm shadow-red-500/20' : 'border-transparent'}`}>
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
@@ -41,28 +53,35 @@ export function StudentCard({ session }: { session: ProctorSession }) {
           {session.status.toUpperCase()}
         </Badge>
       </CardHeader>
-      <CardContent className="p-4 pt-0 space-y-3">
-        <div className="w-full h-32 bg-muted/50 rounded-md flex items-center justify-center relative overflow-hidden border border-border/50">
-          {session.cameraActive ? (
-            <div className="flex flex-col items-center text-muted-foreground">
-              <Video className="w-6 h-6 mb-2 opacity-40" />
-              <span className="text-xs font-medium">Feed Active</span>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center text-red-500/70">
-              <MonitorOff className="w-6 h-6 mb-2" />
-              <span className="text-xs font-medium">Feed Lost</span>
-            </div>
-          )}
+      <CardContent className="p-4 pt-0 space-y-4">
+        
+        {/* Telemetry & Code Feed */}
+        <div className="w-full h-32 bg-zinc-950 rounded-md flex flex-col relative overflow-hidden border border-border/50">
+          <div className="flex items-center justify-between px-2 py-1 bg-zinc-900 border-b border-zinc-800">
+            <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider flex items-center">
+              {getTelemetryIcon(session.typingStatus)}
+              {session.typingStatus}
+            </span>
+          </div>
+          <div className="p-2 text-xs font-mono text-emerald-400/80 whitespace-pre-wrap break-all opacity-80">
+            {session.recentCode}
+            <span className="animate-pulse">_</span>
+          </div>
+          
           {session.status === 'critical' && session.lastAlert && (
             <div className="absolute bottom-0 left-0 right-0 bg-red-500/90 backdrop-blur-sm text-white text-[11px] p-1.5 text-center font-medium flex items-center justify-center">
               <EyeOff className="w-3 h-3 mr-1" /> {session.lastAlert}
             </div>
           )}
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Progress:</span>
-          <span className="font-medium">{session.progress}</span>
+        
+        {/* Progress Bar */}
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Progress</span>
+            <span className="font-medium">{session.progressText}</span>
+          </div>
+          <Progress value={session.progress} className="h-2" />
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex gap-2">

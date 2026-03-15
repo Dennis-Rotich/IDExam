@@ -34,58 +34,61 @@ const pendingGrading = [
 
 export function InstructorOverview() {
   return (
-    <div className="space-y-6 px-3 py-1">
+    <div className="space-y-6 px-3 py-1 text-slate-900">
       {/* Top Metrics Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 max-w-4xl">
-        <Card className="border-0">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 max-w-5xl">
+        <Card className="bg-white border-slate-200 shadow-sm">
           <CardHeader className="flex flex-row justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-slate-600">
               Active Candidates
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-left text-2xl font-bold">124</div>
+            <div className="text-left text-2xl font-bold text-slate-900">124</div>
           </CardContent>
         </Card>
-        <Card className="border-0">
+        
+        <Card className="bg-white border-slate-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Exams</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-slate-600">Active Exams</CardTitle>
+            <Activity className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-left text-2xl font-bold">3</div>
-            <p className="text-left text-xs text-muted-foreground pt-1">
+            <div className="text-left text-2xl font-bold text-slate-900">3</div>
+            <p className="text-left text-xs text-slate-500 pt-1">
               2 Scheduled for tomorrow
             </p>
           </CardContent>
         </Card>
-        <Card className="border-0">
+        
+        <Card className="bg-white border-slate-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-left text-sm font-medium">
+            <CardTitle className="text-left text-sm font-medium text-slate-600">
               Pending Manual Grading
             </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-left text-2xl font-bold">48</div>
-            <p className="text-left text-xs text-muted-foreground pt-1">
+            <div className="text-left text-2xl font-bold text-slate-900">48</div>
+            <p className="text-left text-xs text-slate-500 pt-1">
               Requires instructor review
             </p>
           </CardContent>
         </Card>
-        <Card className="border-0">
+        
+        <Card className="bg-white border-slate-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-slate-600">
               System Integrity
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            <AlertCircle className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-left text-2xl font-bold text-emerald-500">
+            <div className="text-left text-2xl font-bold text-emerald-600">
               Secure
             </div>
-            <p className="text-left text-xs text-muted-foreground pt-1">
+            <p className="text-left text-xs text-slate-500 pt-1">
               0 anomalous events detected
             </p>
           </CardContent>
@@ -93,12 +96,13 @@ export function InstructorOverview() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="text-left grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="text-left grid gap-4 md:grid-cols-2 lg:grid-cols-7 max-w-6xl">
+        
         {/* Analytics Chart */}
-        <Card className="border-0 col-span-4">
+        <Card className="bg-white border-slate-200 shadow-sm col-span-4">
           <CardHeader>
-            <CardTitle>Average Performance by Exam</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-slate-800">Average Performance by Exam</CardTitle>
+            <CardDescription className="text-slate-500">
               Mean score distribution across recent examination instances.
             </CardDescription>
           </CardHeader>
@@ -109,28 +113,30 @@ export function InstructorOverview() {
                   <CartesianGrid
                     strokeDasharray="3 3"
                     vertical={false}
-                    stroke="#333"
+                    stroke="#e2e8f0" // Light mode grid lines
                   />
                   <XAxis
                     dataKey="name"
-                    stroke="#888888"
+                    stroke="#64748b" // Light mode text
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis
-                    stroke="#888888"
+                    stroke="#64748b" // Light mode text
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value) => `${value}%`}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
+                    cursor={{ fill: "rgba(0, 0, 0, 0.04)" }} // Subtle hover effect
                     contentStyle={{
-                      backgroundColor: "#09090b",
-                      border: "1px solid #27272a",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e2e8f0",
                       borderRadius: "6px",
+                      color: "#0f172a",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     }}
                   />
                   <Bar
@@ -152,10 +158,10 @@ export function InstructorOverview() {
         </Card>
 
         {/* Action Queue / Recent Activity */}
-        <Card className="border-0 col-span-3">
+        <Card className="bg-white border-slate-200 shadow-sm col-span-3">
           <CardHeader>
-            <CardTitle>Action Queue</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-slate-800">Action Queue</CardTitle>
+            <CardDescription className="text-slate-500">
               Submissions requiring manual override or grading.
             </CardDescription>
           </CardHeader>
@@ -167,29 +173,29 @@ export function InstructorOverview() {
                   className="flex items-center justify-between"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="bg-muted p-2 rounded-full">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div className="bg-slate-100 p-2 rounded-full border border-slate-200">
+                      <Clock className="h-4 w-4 text-slate-500" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium leading-none">
+                      <p className="text-sm font-medium leading-none text-slate-900">
                         {item.student}
                       </p>
-                      <p className="text-sm text-muted-foreground pt-1">
+                      <p className="text-sm text-slate-500 pt-1">
                         {item.exam} •{" "}
                         <span className="text-xs">{item.time}</span>
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50">
                     Review
                   </Button>
                 </div>
               ))}
             </div>
-            <div className="mt-6 pt-6 border-t">
+            <div className="mt-6 pt-6 border-t border-slate-100">
               <Button
                 variant="ghost"
-                className="w-full text-sm text-muted-foreground"
+                className="w-full text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               >
                 View All Pending (48)
               </Button>

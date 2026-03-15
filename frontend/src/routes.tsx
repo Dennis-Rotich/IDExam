@@ -1,5 +1,5 @@
 import App from "./App";
-import { InstructorLayout } from "./components/Layout/InstructorLayout";
+import { DashboardLayout } from "./components/DashboardLayout";
 import { ExamManager } from "./pages/Instructor/ExamManager";
 import { InstructorOverview } from "./pages/Instructor/InstructorOverview";
 import { LiveProctoring } from "./pages/Instructor/LiveProctoring";
@@ -9,50 +9,60 @@ import LandingPage from "./pages/Landing";
 import { StudentExam } from "./pages/Student/StudentExam";
 
 const MainRoutes = () => {
-    const routes = [
+  const routes = [
+    {
+      path: "/",
+      element: <App />,
+      children: [
         {
-           path: "/",
-           element: <App />,
-           children: [
+          index: true,
+          element: <LandingPage />,
+        },
+        {
+          path: "student",
+          element: <DashboardLayout role="student" />,
+          children: [
             {
-                index: true,
-                element: <LandingPage />
+              index: true,
+              element: <InstructorOverview />,
             },
             {
-                path: "exam/:examId",
-                element: <StudentExam />,
+              path: "exam/:examId",
+              element: <StudentExam />,
+            },
+          ],
+        },
+        {
+          path: "instructor",
+          element: <DashboardLayout role="instructor" />,
+          children: [
+            {
+              index: true,
+              element: <InstructorOverview />,
             },
             {
-                path: "instructor",
-                element: <InstructorLayout />,
-                children: [
-                    {
-                        index: true,
-                        element: <InstructorOverview/>
-                    },
-                    {
-                        path: "exams",
-                        element: <ExamManager/>
-                    },
-                    {
-                        path: "questions",
-                        element: <QuestionEditor/>
-                    },
-                    {
-                        path: "proctoring",
-                        element: <LiveProctoring/>
-                    },
-                    {
-                        path: "settings",
-                        element: <Settings/>
-                    }
-                ]
+              path: "exams",
+              element: <ExamManager />,
             },
-           ]
-        }
-    ];
-    
-    return routes;
-}
+            {
+              path: "questions",
+              element: <QuestionEditor />,
+            },
+            {
+              path: "proctoring",
+              element: <LiveProctoring />,
+            },
+            {
+              path: "settings",
+              element: <Settings />,
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+  return routes;
+};
 
 export default MainRoutes;

@@ -4,15 +4,16 @@ import {
   ResizablePanelGroup,
 } from "../../components/ui/resizable";
 import type { ComponentProps } from "react";
-import { useState, useLayoutEffect, useRef, useEffect } from "react";
+import { useState, useLayoutEffect, useRef, useEffect, useCallback } from "react";
 import { MonacoInstance } from "../../components/Editor/MonacoInstance";
 import { LoadingExam } from "../Loading/StudentPageLoading";
 import { AutoSaveIndicator } from "../../components/Layout/AutoSaveIndicator";
 import { StudentConsole } from "../../components/Student/StudentConsole";
 import { Timer } from "../../components/Layout/Timer";
-import { Settings, User, HelpCircle, Loader2 } from "lucide-react";
+import { Settings, User, HelpCircle, Loader2, CheckCircle } from "lucide-react";
 import { useExamStore } from "../../store/useExamStore";
 import { EXAM_QUESTIONS } from "../../data/questions";
+import { Button } from "../../components/ui/button";
 
 type PanelProps = ComponentProps<typeof ResizablePanel>;
 
@@ -27,23 +28,23 @@ export const StudentExam = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // FIX 1: Initialize with a safe default (e.g., 20%) so it renders immediately
+  // Layout States
   const [minPercentage, setMinPercentage] = useState(20);
   const [running, setIsRunning] = useState(false);
 
-  // Derive current question safely
+  // --- NEW: Submission State Machine ---
+  const [examStatus, setExamStatus] = useState<"in-progress" | "submitting" | "completed" | "failed">("in-progress");
+  
+  // Set exam end time (e.g., 1 hour from load). In reality, fetch this from your backend.
+  const [examEndTime] = useState(new Date(Date.now() + 3600000).toISOString());
+
   const currentQuestion = questions[currentQuestionIndex] || EXAM_QUESTIONS[0];
 
   useEffect(() => {
-    // Simulate API fetch
     const timer = setTimeout(() => {
-      //Load the data into the store
       setQuestions(EXAM_QUESTIONS);
-      // Explicitly start at the first question
       setCurrentQuestionIndex(0);
     }, 6000);
-
-    // Clean up the timer to prevent memory leaks if the user leaves early
     return () => clearTimeout(timer);
   }, [setQuestions, setCurrentQuestionIndex]);
 
@@ -51,7 +52,6 @@ export const StudentExam = () => {
     const calculateMinSize = () => {
       if (containerRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
-        // Avoid division by zero
         if (containerWidth > 0) {
           const percentage = (280 / containerWidth) * 100;
           setMinPercentage(percentage);
@@ -64,14 +64,81 @@ export const StudentExam = () => {
     return () => observer.disconnect();
   }, []);
 
-  // GUARD CLAUSE
+  // --- NEW: Submission Logic ---
+  const submitExamPayload = async (isAutoSubmit: boolean = false) => {
+    if (examStatus !== "in-progress") return; // Prevent double firing
+    
+    setExamStatus("submitting");
+
+    try {
+      // Gather data from your Zustand store
+      const payload = {
+        examId: "EX-101", // Replace with actual ID
+        isAutoSubmit,
+        // answers: questions.map(...) 
+      };
+
+      // In the future: await apiClient.post('/exams/submit', payload);
+      
+      // Simulate network request
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      setExamStatus("completed");
+    } catch (error) {
+      console.error("Submission failed:", error);
+      setExamStatus("failed");
+    }
+  };
+
+  // Triggered by the Timer component when time === 0
+  const handleTimeUp = useCallback(() => {
+    console.log("Time up! Auto-submitting.");
+    submitExamPayload(true);
+  }, [examStatus]);
+
+
+  // --- GUARD CLAUSES & INTERCEPT SCREENS ---
+
   if (isLoading || !questions || questions.length === 0) {
     return <LoadingExam />;
   }
 
+  // Intercept the IDE if currently submitting
+  if (examStatus === "submitting") {
+    return (
+      <div className="h-screen bg-[#1a1a1a] flex flex-col items-center justify-center text-[#eff1f6] font-sans">
+        <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+        <h2 className="text-xl font-semibold">Submitting Exam...</h2>
+        <p className="text-slate-400 mt-2 text-sm">Please do not close this tab or disconnect your network.</p>
+      </div>
+    );
+  }
+
+  // Intercept the IDE if submission was successful
+  if (examStatus === "completed") {
+    return (
+      <div className="h-screen bg-[#1a1a1a] flex flex-col items-center justify-center text-[#eff1f6] font-sans">
+        <div className="bg-[#282828] border border-[#333] p-8 rounded-lg max-w-md text-center shadow-2xl">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Submission Successful</h2>
+          <p className="text-slate-400 mb-6 text-sm">Your exam has been securely transmitted and recorded. You may now close this secure environment.</p>
+          <Button 
+            variant="secondary" 
+            className="bg-[#333] hover:bg-[#444] text-white border-0"
+            onClick={() => window.location.href = "/"}
+          >
+            Return to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- STANDARD IDE RENDER ---
+
   const leftPanelProps: Partial<PanelProps> = {
     defaultSize: 45,
-    minSize: minPercentage, // This will snap from 20% to calculated % instantly
+    minSize: minPercentage,
     className:
       "flex flex-col bg-[#282828] rounded-lg border border-[#333] overflow-hidden",
   };
@@ -101,9 +168,10 @@ export const StudentExam = () => {
           <span className="text-slate-300">IDExam Engine</span>
         </div>
         <div className="flex items-center gap-6">
+          {/* Wire the timer to the handleTimeUp function */}
           <Timer
-            endsAt={new Date(Date.now() + 3600000).toISOString()}
-            onTimeUp={() => {}}
+            endsAt={examEndTime}
+            onTimeUp={handleTimeUp}
           />
           <div className="flex items-center gap-3 text-slate-400">
             <Settings size={18} className="hover:text-white cursor-pointer" />
@@ -113,8 +181,6 @@ export const StudentExam = () => {
       </nav>
 
       <main ref={containerRef} className="flex-1 overflow-hidden p-2">
-        {/* FIX 2: Remove the {minPercentage > 0 &&} wrapper */}
-        {/* FIX 3: Ensure PanelGroup has h-full explicitly */}
         <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
           <ResizablePanel {...leftPanelProps}>
             <div className="flex items-center px-4 h-10 border-b border-[#333] bg-[#333]/30 text-xs text-white">
@@ -200,7 +266,11 @@ export const StudentExam = () => {
           >
             {running ? <Loader2 size={14} className="animate-spin" /> : "Run"}
           </button>
-          <button className="px-4 py-1.5 bg-green-600 hover:bg-green-500 rounded text-xs font-bold text-white transition-colors">
+          {/* Wire the manual submit button to the function */}
+          <button 
+            onClick={() => submitExamPayload(false)}
+            className="px-4 py-1.5 bg-green-600 hover:bg-green-500 rounded text-xs font-bold text-white transition-colors"
+          >
             Submit Exam
           </button>
         </div>

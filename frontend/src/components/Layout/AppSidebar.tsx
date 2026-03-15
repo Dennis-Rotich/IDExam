@@ -3,8 +3,9 @@ import {
   FileCode2,
   Database,
   MonitorPlay,
-  Settings,
   Menu,
+  GraduationCap,
+  History
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -19,7 +20,8 @@ import {
   SidebarMenuItem,
 } from "../ui/sidebar"; // Adjust alias to match your tsconfig
 
-const navItems = [
+// INSTRUCTOR LINKS
+const instructorNav = [
   { title: "Overview", icon: LayoutDashboard, url: "/instructor" },
   { title: "Exam Manager", icon: FileCode2, url: "/instructor/exams" },
   { title: "Question Bank", icon: Database, url: "/instructor/questions" },
@@ -30,14 +32,26 @@ const navItems = [
   },
 ];
 
-export function AppSidebar() {
+// STUDENT LINKS
+const studentNav = [
+  { title: "My Dashboard", icon: GraduationCap, url: "/student" },
+  { title: "Past Results", icon: History, url: "/student/results" },
+];
+
+export function AppSidebar({
+  role = "instructor",
+}: {
+  role?: "instructor" | "student";
+}) {
   const location = useLocation();
+  const navItems = role === "instructor" ? instructorNav : studentNav;
+  const label = role === "instructor" ? "Instructor Panel" : "Student Portal";
 
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Instructor Panel</SidebarGroupLabel>
+          <SidebarGroupLabel>{label}</SidebarGroupLabel>
           <SidebarTrigger>
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
