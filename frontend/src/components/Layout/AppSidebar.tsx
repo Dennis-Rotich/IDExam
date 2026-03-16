@@ -5,7 +5,8 @@ import {
   MonitorPlay,
   Menu,
   GraduationCap,
-  History
+  Code,
+  FileCheck
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -34,8 +35,9 @@ const instructorNav = [
 
 // STUDENT LINKS
 const studentNav = [
-  { title: "My Dashboard", icon: GraduationCap, url: "/student" },
-  { title: "Past Results", icon: History, url: "/student/results" },
+  { title: "Overview", icon: GraduationCap, url: "/student" },
+  { title: "Practice", icon: Code, url: "/student/practice" },
+  { title: "Past Results", icon: FileCheck, url: "/student/results" },
 ];
 
 export function AppSidebar({
