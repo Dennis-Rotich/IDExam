@@ -1,14 +1,27 @@
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import 'dotenv/config'
+import cors from 'cors'
+import connectDB from './config/mongodb.js';
+import examRouter from './routes/examRoute.js';
+import submissionRouter from './routes/submissionRoute.js';
 
-const express = require('express');
-const http = require('http')
-const {Server} = require('socket.io')
-
+// app config
 const app = express();
+const PORT = process.env.PORT || 3000
 const server = http.createServer(app)
 const io = new Server(server)
+connectDB()
 
-//Serve statsic files from "public" directory
+//middlewares
 app.use(express.static('public'));
+app.use(express.json())
+app.use(cors())
+
+// api endpoints
+app.use('/api/exam', examRouter)
+app.use('/api/submission', submissionRouter)
 
 // Store active exam sessions
 const EXAM_ID = 'CS101';
@@ -104,8 +117,7 @@ app.get('/',(req,res)=>{
     res.send('API WORKING WELL')
 })
 
-// Start the server
-const PORT = 3000;
+
 server.listen(PORT, ()=>{
     console.log(`Server running on http://localhost:${PORT}`);
 });
