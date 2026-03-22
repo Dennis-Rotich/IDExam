@@ -6,6 +6,8 @@ import cors from 'cors'
 import connectDB from './config/mongodb.js';
 import examRouter from './routes/examRoute.js';
 import submissionRouter from './routes/submissionRoute.js';
+import studentRouter from './routes/studentRoute.js';
+import teacherRouter from './routes/teacherRoute.js';
 
 // app config
 const app = express();
@@ -22,6 +24,8 @@ app.use(cors())
 // api endpoints
 app.use('/api/exam', examRouter)
 app.use('/api/submission', submissionRouter)
+app.use('/api/teacher', teacherRouter)
+app.use('/api/student', studentRouter)
 
 // Store active exam sessions
 const EXAM_ID = 'CS101';
