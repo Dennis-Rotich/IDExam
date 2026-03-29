@@ -6,7 +6,6 @@ import {
   LogOut,
   BarChart2,
   ShieldCheck,
-  Bell,
   HelpCircle,
   Loader2,
 } from "lucide-react";
@@ -22,7 +21,6 @@ import {
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Badge } from "./ui/badge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
