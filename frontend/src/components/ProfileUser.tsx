@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   Bell,
   HelpCircle,
-  Loader2
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -63,31 +63,31 @@ const ROLE_PATHS: Record<
   }
 > = {
   instructor: {
-    dashboard:     "/instructor",
-    profile:       "/instructor/profile",
-    settings:      "/instructor/settings",
-    tests:         "/instructor/exams",
-    analytics:     "/instructor",
+    dashboard: "/instructor",
+    profile: "/instructor/profile",
+    settings: "/instructor/settings",
+    tests: "/instructor/exams",
+    analytics: "/instructor",
     notifications: "/instructor/notifications",
-    help:          "/instructor/help",
+    help: "/instructor/help",
   },
   student: {
-    dashboard:     "/student",
-    profile:       "/student/profile",
-    settings:      "/student/settings",
-    tests:         "/student/exams",
-    analytics:     "/student/results",
+    dashboard: "/student",
+    profile: "/student/profile",
+    settings: "/student/settings",
+    tests: "/student/exams",
+    analytics: "/student/results",
     notifications: "/student/notifications",
-    help:          "/student/help",
+    help: "/student/help",
   },
   admin: {
-    dashboard:     "/admin",
-    profile:       "/admin/profile",
-    settings:      "/admin/settings",
-    tests:         "/admin/tests",
-    analytics:     "/admin/analytics",
+    dashboard: "/admin",
+    profile: "/admin/profile",
+    settings: "/admin/settings",
+    tests: "/admin/tests",
+    analytics: "/admin/analytics",
     notifications: "/admin/notifications",
-    help:          "/admin/help",
+    help: "/admin/help",
   },
 };
 
@@ -129,7 +129,7 @@ function getInitials(name: string): string {
 export function ProfileDropdown({ user, onLogOut }: ProfileDropdownProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const paths    = resolvePathsByRole(user.role);
+  const paths = resolvePathsByRole(user.role);
   const initials = getInitials(user.displayName);
   const hasNotifications =
     user.unreadNotifications !== undefined && user.unreadNotifications > 0;
@@ -172,7 +172,6 @@ export function ProfileDropdown({ user, onLogOut }: ProfileDropdownProps) {
 
       {/* ── Content ── */}
       <DropdownMenuContent className="w-60" align="end" forceMount>
-
         {/* ── Header: identity block ── */}
         <DropdownMenuLabel className="font-normal px-3 py-2.5">
           <div className="flex items-start gap-2.5">
@@ -211,7 +210,10 @@ export function ProfileDropdown({ user, onLogOut }: ProfileDropdownProps) {
         <DropdownMenuGroup>
           {/* Public-facing profile card — what others see */}
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to={paths.profile} className="w-full flex items-center gap-2 text-foreground">
+            <Link
+              to={paths.profile}
+              className="w-full flex items-center gap-2 text-foreground"
+            >
               <User className="h-4 w-4 shrink-0" />
               <div className="flex flex-col">
                 <span className="text-sm leading-none">View Profile</span>
@@ -224,9 +226,14 @@ export function ProfileDropdown({ user, onLogOut }: ProfileDropdownProps) {
 
           {/* Instructor → Analytics / Student → My Results */}
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to={paths.analytics} className="w-full flex items-center text-foreground">
+            <Link
+              to={paths.analytics}
+              className="w-full flex items-center text-foreground"
+            >
               <BarChart2 className="mr-2 h-4 w-4" />
-              <span>{user.role === "instructor" ? "Analytics" : "My Results"}</span>
+              <span>
+                {user.role === "instructor" ? "Analytics" : "My Results"}
+              </span>
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
@@ -235,7 +242,7 @@ export function ProfileDropdown({ user, onLogOut }: ProfileDropdownProps) {
 
         {/* ── Secondary actions ── */}
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild className="cursor-pointer">
+          {/*<DropdownMenuItem asChild className="cursor-pointer">
             <Link
               to={paths.notifications}
               className="w-full flex items-center justify-between text-foreground"
@@ -250,11 +257,14 @@ export function ProfileDropdown({ user, onLogOut }: ProfileDropdownProps) {
                 </Badge>
               )}
             </Link>
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
 
           {/* Account settings — name, email, password, preferences */}
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to={paths.settings} className="w-full flex items-center gap-2 text-foreground">
+            <Link
+              to={paths.settings}
+              className="w-full flex items-center gap-2 text-foreground"
+            >
               <Settings className="h-4 w-4 shrink-0" />
               <div className="flex flex-col">
                 <span className="text-sm leading-none">Settings</span>
@@ -266,7 +276,10 @@ export function ProfileDropdown({ user, onLogOut }: ProfileDropdownProps) {
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to={paths.help} className="w-full flex items-center text-foreground">
+            <Link
+              to={paths.help}
+              className="w-full flex items-center text-foreground"
+            >
               <HelpCircle className="mr-2 h-4 w-4" />
               <span>Help &amp; Support</span>
             </Link>
