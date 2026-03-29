@@ -1,11 +1,10 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 export function AuthLayout() {
   const location = useLocation();
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
   const path = location.pathname;
 
-  // Determine the exact role context from the URL
   let content;
 
   if (path.includes("instructor")) {
@@ -29,6 +28,17 @@ export function AuthLayout() {
       secondarySupportText: "Technical support",
       switchText: "Student Portal",
       switchPath: "/auth/student",
+    };
+  } else if (path.includes("admin")) {
+    content = {
+      id: "adm",
+      roleBadge: "Admin Login",
+      tagline: "Platform oversight and system administration.",
+      imageSrc: "/instructor-auth.svg",
+      primarySupportText: "View system status",
+      secondarySupportText: "Vendor escalation portal",
+      switchText: "Instructor Portal",
+      switchPath: "/auth/instructor",
     };
   } else {
     // Default to standard Student Auth (/auth or /auth/student)
@@ -112,7 +122,7 @@ export function AuthLayout() {
       <div className="flex flex-col justify-center items-center bg-white p-8 sm:p-12 relative h-screen">
         {/* Wrap Outlet in a keyed div to ensure content clears properly */}
         <div key={`content-${path}`} className="w-full flex justify-center">
-          <Outlet context={content}/>
+          <Outlet context={content} />
         </div>
       </div>
     </div>

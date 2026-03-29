@@ -1,20 +1,25 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { useAuth } from "../../context/AuthContext";
 
 export function ExamAuth({ content }: { content: any }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { logIn, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsLoading(false);
-    navigate("/student/exam/live");
+    try {
+      await logIn("student");
+      toast.success("Identity verified. Launching environment.");
+      navigate("/exam/5322mm-demoid-kl5566");
+    } catch (error) {
+      console.error("Authentication error:", error);
+      toast.error("Invalid credentials or exam code.");
+    }
   };
 
   return (
@@ -101,14 +106,13 @@ export function ExamAuth({ content }: { content: any }) {
         </a>
       </div>
 
-      <div className="flex flex-col gap-2 items-start w-[600px] w-[180px]">
+      <div className="flex flex-col gap-2 items-start w-full">
         <button
-          key={content.switchPath}
-          id={content.id}
-          className="p-2 rounded-[5px] text-slate-500 hover:bg-slate-300 hover:text-slate-900 bg-slate-200"
-          onClick={() => navigate(content.switchPath)}
+          id={content?.id}
+          className="p-2 w-[180px] rounded-[5px] text-slate-500 hover:bg-slate-300 hover:text-slate-900"
+          onClick={() => {navigate(content?.switchPath || "/")}}
         >
-          {content.switchText}
+          {content?.switchText || "Return"}
         </button>
       </div>
     </div>

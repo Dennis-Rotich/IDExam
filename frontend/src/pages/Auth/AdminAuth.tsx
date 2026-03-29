@@ -7,7 +7,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useAuth } from "../../context/AuthContext";
 
-export function InstructorAuth({ content }: { content: any }) {
+export function AdminAuth({ content }: { content: any }) {
   const { signUp, logIn, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
@@ -17,19 +17,19 @@ export function InstructorAuth({ content }: { content: any }) {
 
     try {
       if (isLogin) {
-        await logIn("instructor");
-        toast.success("Instructor login successful!");
+        await logIn("admin");
+        toast.success("Admin login successful!");
       } else {
         if (signUp) {
-          await signUp("instructor");
-          toast.success("Instructor account created!");
+          await signUp("admin");
+          toast.success("Admin account created!");
         } else {
-          await logIn("instructor");
+          await logIn("admin");
           toast.success("Logged in successfully!");
         }
       }
 
-      navigate("/instructor");
+      navigate("/admin");
     } catch (error) {
       console.error("Authentication error:", error);
       toast.error("Authentication failed. Please check your credentials.");
@@ -41,34 +41,34 @@ export function InstructorAuth({ content }: { content: any }) {
       {/* Mobile Header (Hidden on Desktop) */}
       <div className="flex lg:hidden items-center gap-2 mb-8">
         <span className="text-xl font-bold tracking-tighter text-slate-900">
-          IDE<span className="text-[#00a3a3]">xam</span>
+          tAh<span className="text-[#00a3a3]">Ini</span>
         </span>
         <span className="text-slate-500 font-medium ml-2 text-sm border-l border-slate-300 pl-2">
-          Instructor
+          Admin
         </span>
       </div>
 
       <div className="space-y-2 text-center lg:text-left">
         <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-          {isLogin ? "Instructor Login" : "Create an account"}
+          {isLogin ? (content?.roleBadge || "Admin Login") : "Create an account"}
         </h2>
         <p className="text-slate-500 text-sm">
           {isLogin
-            ? "Access your dashboard to manage exams and grading."
-            : "Register to start hosting secure technical assessments."}
+            ? (content?.tagline || "Platform oversight and system administration.")
+            : "Register to manage the platform and oversee system operations."}
         </p>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="text-left text-black space-y-6 border border-slate-200 p-6 rounded-xl shadow-sm bg-white h-[400px]"
+        className="text-left text-black space-y-6 border border-slate-200 p-6 rounded-xl shadow-sm bg-white min-h-[400px]"
       >
         {!isLogin && (
           <div className="space-y-2">
             <Label htmlFor="name" className="text-slate-700">Full Name</Label>
             <Input
               id="name"
-              placeholder="Isaiah Juma"
+              placeholder="System Administrator"
               required
               className="bg-slate-50 border-slate-200 placeholder:text-slate-400 focus-visible:ring-[#00a3a3]"
             />
@@ -76,11 +76,11 @@ export function InstructorAuth({ content }: { content: any }) {
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-slate-700">Institutional Email</Label>
+          <Label htmlFor="email" className="text-slate-700">Admin Email</Label>
           <Input
             id="email"
             type="email"
-            placeholder="faculty@university.edu"
+            placeholder="admin@university.edu"
             required
             className="bg-slate-50 border-slate-200 placeholder:text-slate-400 focus-visible:ring-[#00a3a3]"
           />
@@ -136,10 +136,10 @@ export function InstructorAuth({ content }: { content: any }) {
       <div className="absolute top-8 right-8 hidden sm:block">
         <button
           id={content?.id}
-          className="p-2 rounded-[5px] text-slate-500 hover:bg-slate-300 hover:text-slate-900"
-          onClick={() => navigate(content?.switchPath || "/")}
+          className="p-2 rounded-[5px] text-slate-500 hover:bg-slate-300 hover:text-slate-900 transition-colors text-sm font-medium"
+          onClick={() => navigate(content?.switchPath || "/auth/instructor")}
         >
-          {content?.switchText || "Switch Portal"}
+          {content?.switchText || "Instructor Portal"}
         </button>
       </div>
     </div>

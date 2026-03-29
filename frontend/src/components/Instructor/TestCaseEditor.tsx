@@ -20,7 +20,8 @@ export function TestCaseEditor({ id, input, output, isHidden, onRemove, onUpdate
         <Textarea 
           value={input}
           onChange={(e) => onUpdate(id, "input", e.target.value)}
-          className="font-mono text-sm h-24 resize-none bg-muted/20" 
+          // Added min-h-0 here to override shadcn's default min-h-[80px]
+          className="font-mono text-sm h-9 min-h-0 resize-none bg-muted/20" 
           placeholder="e.g. 5\n1 2 3 4 5"
         />
       </div>
@@ -29,7 +30,8 @@ export function TestCaseEditor({ id, input, output, isHidden, onRemove, onUpdate
         <Textarea 
           value={output}
           onChange={(e) => onUpdate(id, "output", e.target.value)}
-          className="font-mono text-sm h-24 resize-none bg-muted/20" 
+          // Added min-h-0 here as well
+          className="font-mono text-sm h-9 min-h-0 resize-none bg-muted/20" 
           placeholder="e.g. 15"
         />
       </div>

@@ -4,22 +4,36 @@ import { Loader2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { useAuth } from "../../context/AuthContext";
+import { toast } from "sonner";
 
 export function StudentAuth({ content }: { content: any }) {
+  const { signUp, logIn, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
+    try {
+      if (isLogin) {
+        await logIn("student");
+        toast.success("Welcome back!"); // Success toast
+      } else {
+        if (signUp) {
+          await signUp("student");
+          toast.success("Account created successfully!"); // Success toast
+        } else {
+          await logIn("student");
+          toast.success("Logged in successfully!"); // Success toast
+        }
+      }
 
-    // Reroute to dashboard (in reality, handled by your auth context/Zustand)
-    window.location.href = "/student";
+      navigate("/student");
+    } catch (error) {
+      console.error("Authentication error:", error);
+      toast.error("Authentication failed. Please check your credentials."); // Error toast
+    }
   };
 
   return (
@@ -120,7 +134,9 @@ export function StudentAuth({ content }: { content: any }) {
                 : "Already have an account? "}
             </span>
             <button
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+              }}
               className="font-medium text-[#00a3a3] hover:text-[#008a8a]  transition-colors"
             >
               {isLogin ? "Sign up" : "Log in"}
