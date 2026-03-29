@@ -1,0 +1,2 @@
+1. Modularize pages/Settings.tsx
+2. populate src/types/ with the actual types
