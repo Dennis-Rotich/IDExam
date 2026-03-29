@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Megaphone, Send, Clock, Trash2, CheckCircle2, CircleDashed } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -13,7 +12,6 @@ const HISTORY = [
 ];
 
 export function AdminAnnouncementsPage() {
-  const [formData, setFormData] = useState({ title: "", content: "", audience: "all", status: "publish_now" });
 
   return (
     <div className="mx-auto space-y-6 pb-12 text-foreground text-left px-2">

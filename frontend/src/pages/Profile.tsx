@@ -1,5 +1,5 @@
 import { ArrowLeft, Edit2, Users, FileText, CheckCircle2, Copy, Eye, BookOpen, Clock } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -18,7 +18,6 @@ const RECENT_ACTIVITY = [
 ];
 
 export function ProfilePage() {
-  const navigate = useNavigate();
   // Connection point: Pull your created questions from the store
   const { questions } = useQuestionStore();
 

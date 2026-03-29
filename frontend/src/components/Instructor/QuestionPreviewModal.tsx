@@ -4,7 +4,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Eye, EyeOff, Code2, FileText, CheckCircle2 } from "lucide-react";
-import { type Question } from "@/store/useQuestionStore";
+import { type Question } from "../../store/useQuestionStore";
 
 interface QuestionPreviewModalProps {
   question: Question | null;

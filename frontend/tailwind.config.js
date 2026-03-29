@@ -6,7 +6,7 @@ export default {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'Lexend"',
+  				'Lexend',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'

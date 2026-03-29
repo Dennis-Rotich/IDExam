@@ -8,9 +8,7 @@ import {
   ShieldCheck,
   Bell,
   HelpCircle,
-  Loader2,
-  ClipboardList,
-  BookOpen
+  Loader2
 } from "lucide-react";
 
 import {
@@ -126,60 +124,12 @@ function getInitials(name: string): string {
     .join("")
     .toUpperCase();
 }
-
-function roleMeta(role: UserRole) {
-  if (role === "instructor") return { label: "Instructor", color: "bg-amber-100 text-amber-800 border-amber-200" };
-  if (role === "admin")      return { label: "Admin",       color: "bg-rose-100 text-rose-800 border-rose-200" };
-  return                            { label: "Student",     color: "bg-sky-100 text-sky-800 border-sky-200" };
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-/** The stat pills shown in the dropdown header for quick at-a-glance context. */
-function ProfileStats({ user }: { user: ProfileUser }) {
-  if (user.role === "instructor" && user.activeTests !== undefined) {
-    return (
-      <div className="flex items-center gap-1.5 pt-1">
-        <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-          <ClipboardList className="h-3 w-3" />
-          {user.activeTests} active test{user.activeTests !== 1 ? "s" : ""}
-        </span>
-      </div>
-    );
-  }
-
-  if (user.role === "student") {
-    const hasStat =
-      user.testsCompleted !== undefined || user.averageScore !== undefined;
-    if (!hasStat) return null;
-    return (
-      <div className="flex items-center gap-1.5 pt-1 flex-wrap">
-        {user.testsCompleted !== undefined && (
-          <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-            <BookOpen className="h-3 w-3" />
-            {user.testsCompleted} completed
-          </span>
-        )}
-        {user.averageScore !== undefined && (
-          <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-            <BarChart2 className="h-3 w-3" />
-            {user.averageScore}% avg
-          </span>
-        )}
-      </div>
-    );
-  }
-
-  return null;
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ProfileDropdown({ user, onLogOut }: ProfileDropdownProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const paths    = resolvePathsByRole(user.role);
-  const meta     = roleMeta(user.role);
   const initials = getInitials(user.displayName);
   const hasNotifications =
     user.unreadNotifications !== undefined && user.unreadNotifications > 0;

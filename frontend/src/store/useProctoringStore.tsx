@@ -10,12 +10,12 @@ interface ProctoringState {
   sendMessageToStudent: (sessionId: string, message: string) => void;
 }
 
-export const useProctoringStore = create<ProctoringState>((set, get) => ({
+export const useProctoringStore = create<ProctoringState>((set) => ({
   activeSessions: [],
   isConnected: false,
   // socket: null,
 
-  connectToExamStream: (examId) => {
+  connectToExamStream: () => {
     // TODO: Wire this up when the Express backend is ready
     /*
     const newSocket = io('http://localhost:5000/proctoring', {

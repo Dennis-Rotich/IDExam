@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useExamStore } from "../../store/useExamStore";
 import { useAutoSave } from "../../hooks/useAutoSave";
 import { CloudCheck, CloudUploadIcon, AlertCircle } from "lucide-react";

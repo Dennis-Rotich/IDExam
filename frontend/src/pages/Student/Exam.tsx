@@ -48,6 +48,7 @@ export const StudentExam = () => {
   }, []);
 
   const submitExamPayload = async (isAutoSubmit: boolean = false) => {
+    console.log(`Submitting exam. Auto-submit: ${isAutoSubmit}`);
     if (examStatus !== "in-progress") return; 
     setExamStatus("submitting");
     try {
