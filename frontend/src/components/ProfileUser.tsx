@@ -67,7 +67,7 @@ const ROLE_PATHS: Record<
     profile:       "/instructor/profile",
     settings:      "/instructor/settings",
     tests:         "/instructor/exams",
-    analytics:     "/instructor/analytics",
+    analytics:     "/instructor",
     notifications: "/instructor/notifications",
     help:          "/instructor/help",
   },

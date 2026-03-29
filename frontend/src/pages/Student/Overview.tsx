@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Clock,
@@ -107,7 +107,6 @@ const RECENT_RESULTS = [
   },
 ];
 
-
 function scoreColor(score: number) {
   if (score >= 80) return "text-emerald-500";
   if (score >= 60) return "text-amber-500";
@@ -115,19 +114,39 @@ function scoreColor(score: number) {
 }
 
 export function StudentOverview() {
+  const navigate = useNavigate();
+
   return (
     <div className="mx-auto space-y-10 pb-12 text-foreground text-left px-2">
-      
       {/* 1. HEADER & STATS (Flattened) */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome back, John.</h1>
-          <p className="text-muted-foreground mt-1 text-sm">tAhinI University • BSc Computer Science</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Welcome back, John.
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            tAhinI University • BSc Computer Science
+          </p>
         </div>
         <div className="flex gap-8 text-sm">
-          <div><p className="text-muted-foreground mb-1">Avg Score</p><p className="text-2xl font-mono font-medium text-foreground">{STATS.avgScore}%</p></div>
-          <div><p className="text-muted-foreground mb-1">Completed</p><p className="text-2xl font-mono font-medium text-foreground">{STATS.completed}</p></div>
-          <div><p className="text-muted-foreground mb-1">Pass Rate</p><p className="text-2xl font-mono font-medium text-emerald-500">{STATS.passRate}%</p></div>
+          <div>
+            <p className="text-muted-foreground mb-1">Avg Score</p>
+            <p className="text-2xl font-mono font-medium text-foreground">
+              {STATS.avgScore}%
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground mb-1">Completed</p>
+            <p className="text-2xl font-mono font-medium text-foreground">
+              {STATS.completed}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground mb-1">Pass Rate</p>
+            <p className="text-2xl font-mono font-medium text-emerald-500">
+              {STATS.passRate}%
+            </p>
+          </div>
         </div>
       </div>
 
@@ -135,14 +154,29 @@ export function StudentOverview() {
       {URGENT_ITEMS.length > 0 && (
         <div className="space-y-2">
           {URGENT_ITEMS.map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-3 px-4 rounded-md bg-muted/10 border border-border/50 hover:bg-muted/30 transition-colors">
+            <div
+              key={item.id}
+              className="flex items-center justify-between p-3 px-4 rounded-md bg-muted/10 border border-border/50 hover:bg-muted/30 transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <item.icon className={`w-4 h-4 ${item.iconColor}`} />
-                <span className="font-medium text-sm text-foreground">{item.title}</span>
-                <span className="hidden sm:inline-block text-xs text-muted-foreground border-l border-border pl-3">{item.detail}</span>
+                <span className="font-medium text-sm text-foreground">
+                  {item.title}
+                </span>
+                <span className="hidden sm:inline-block text-xs text-muted-foreground border-l border-border pl-3">
+                  {item.detail}
+                </span>
               </div>
-              <Button asChild size="sm" variant="ghost" className="h-8 text-xs hover:bg-background">
-                <Link to={item.link}>{item.action} <ChevronRight className="w-3 h-3 ml-1" /></Link>
+              <Button
+                asChild
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs hover:bg-background"
+                onClick={() => navigate(`/exam/${item.id}`)}
+              >
+                <Link to={item.link}>
+                  {item.action} <ChevronRight className="w-3 h-3 ml-1" />
+                </Link>
               </Button>
             </div>
           ))}
@@ -151,26 +185,46 @@ export function StudentOverview() {
 
       {/* 3. SPLIT LAYOUT (Tables instead of Cards) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-        
         {/* LEFT: Upcoming */}
         <div className="space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-border">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Upcoming Deadlines</h2>
-            <Link to="/student/tests" className="text-xs text-blue-500 hover:text-blue-400">View All</Link>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Upcoming Deadlines
+            </h2>
+            <Link
+              to="/student/tests"
+              className="text-xs text-blue-500 hover:text-blue-400"
+            >
+              View All
+            </Link>
           </div>
           <div className="space-y-1">
             {UPCOMING_TESTS.map((test) => (
-              <div key={test.id} className="flex items-center justify-between py-3 px-2 hover:bg-muted/10 rounded-md transition-colors">
+              <div
+                key={test.id}
+                className="flex items-center justify-between py-3 px-2 hover:bg-muted/10 rounded-md transition-colors"
+              >
                 <div className="min-w-0 pr-4">
-                  <p className="text-sm font-medium text-foreground truncate">{test.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{test.subject} • Due in {test.daysAway} days</p>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {test.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {test.subject} • Due in {test.daysAway} days
+                  </p>
                 </div>
                 {test.open ? (
-                  <Button size="sm" variant="secondary" className="h-8 text-xs bg-muted/50 hover:bg-muted text-foreground shrink-0 rounded-full px-4">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 text-xs bg-muted/50 hover:bg-muted text-foreground shrink-0 rounded-full px-4"
+                    onClick={() => navigate(`/exam/${test.id}`)}
+                  >
                     <Play className="w-3 h-3 mr-1.5" /> Start
                   </Button>
                 ) : (
-                  <span className="text-xs text-muted-foreground/50 shrink-0 pr-2">Locked</span>
+                  <span className="text-xs text-muted-foreground/50 shrink-0 pr-2">
+                    Locked
+                  </span>
                 )}
               </div>
             ))}
@@ -180,20 +234,42 @@ export function StudentOverview() {
         {/* RIGHT: Recent Results */}
         <div className="space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-border">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent Submissions</h2>
-            <Link to="/student/results" className="text-xs text-blue-500 hover:text-blue-400">Full History</Link>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Recent Submissions
+            </h2>
+            <Link
+              to="/student/results"
+              className="text-xs text-blue-500 hover:text-blue-400"
+            >
+              Full History
+            </Link>
           </div>
           <div className="space-y-1">
             {RECENT_RESULTS.map((res) => (
-              <div key={res.id} className="flex items-center justify-between py-3 px-2 hover:bg-muted/10 rounded-md transition-colors">
+              <div
+                key={res.id}
+                className="flex items-center justify-between py-3 px-2 hover:bg-muted/10 rounded-md transition-colors"
+              >
                 <div className="min-w-0 pr-4">
-                  <p className="text-sm font-medium text-foreground truncate">{res.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{res.subject} • {res.date}</p>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {res.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {res.subject} • {res.date}
+                  </p>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
-                  <span className={`font-mono font-bold ${scoreColor(res.score)}`}>{res.score}%</span>
+                  <span
+                    className={`font-mono font-bold ${scoreColor(res.score)}`}
+                  >
+                    {res.score}%
+                  </span>
                   <Link to={`/student/results/${res.id}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full"
+                    >
                       <FileText className="w-4 h-4" />
                     </Button>
                   </Link>

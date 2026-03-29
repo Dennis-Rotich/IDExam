@@ -29,8 +29,7 @@ export function NewQuestion() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12 text-foreground text-left px-2 pt-4">
-      
+    <div className="mx-auto space-y-6 pb-12 text-foreground text-left px-2">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-4 w-full sm:w-1/2">
