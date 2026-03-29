@@ -188,7 +188,7 @@ const MainRoutes = () => {
             },
             {
               path: "help",
-              element: <HelpAndSupportPage />,
+              element: <HelpAndSupportPage role="student"/>,
             },
           ],
         },
@@ -244,6 +244,10 @@ const MainRoutes = () => {
             {
               path: "settings",
               element: <Settings />,
+            },
+            {
+              path: "help",
+              element: <HelpAndSupportPage role="instructor"/>,
             },
           ],
         },
