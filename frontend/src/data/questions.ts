@@ -1,0 +1,76 @@
+import { type Question } from "../store/useExamStore";
+
+export const EXAM_QUESTIONS: Question[] = [
+  {
+    id: "",
+    description: "Given a string `s` containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid. An input string is valid if brackets are closed by the same type and in the correct order.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 1,
+  },
+  {
+    id: "",
+    description: "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`. You may assume each input would have exactly one solution.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 2,
+  },
+  {
+    id: "",
+    description: "Given `head`, the head of a linked list, determine if the linked list has a cycle in it. Return `true` if there is a cycle, otherwise return `false`.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 3,
+  },
+  {
+    id: "",
+    description: "Given the `head` of a singly linked list, reverse the list and return the reversed list. Try to implement this both iteratively and recursively.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 4,
+  },
+  {
+    id: "",
+    description: "Given the `root` of a binary tree, return its maximum depth. A binary tree's maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 5,
+  },
+  {
+    id: "",
+    description: "Given an array of integers `nums` which is sorted in ascending order, and an integer `target`, write a function to search `target` in `nums`. If `target` exists, then return its index. Otherwise, return -1.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 6,
+  },
+  {
+    id: "",
+    description: "Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `false` otherwise. An Anagram is a word or phrase formed by rearranging the letters of a different word or phrase.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 7,
+  },
+  {
+    id: "",
+    description: "You are given an array `prices` where `prices[i]` is the price of a given stock on the `i`-th day. Return the maximum profit you can achieve from this transaction. If you cannot achieve any profit, return 0.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 8,
+  },
+  {
+    id: "",
+    description: "Given an integer array `nums`, return `true` if any value appears at least twice in the array, and return `false` if every element is distinct.",
+    code: "",
+    isAttempted: false,
+    language: "",
+    number: 9,
+  }
+];
