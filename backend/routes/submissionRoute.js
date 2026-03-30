@@ -1,9 +1,10 @@
 import express from 'express';
-import { studentSubmit } from "../controllers/submissionController.js";
+import { studentSubmit, runCode } from "../controllers/submissionController.js";
 import {verifyToken} from "../middlewares/auth.js"
 
 const submissionRouter = express.Router()
 
-submissionRouter.post('/submit-exam/:examId/problem/:problemId',verifyToken, studentSubmit)
-
+submissionRouter.post('/submit/:examId/problem/:problemId', verifyToken, studentSubmit)
+submissionRouter.post('/test', runCode)
+ 
 export default submissionRouter

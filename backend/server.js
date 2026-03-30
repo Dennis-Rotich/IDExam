@@ -11,7 +11,7 @@ import teacherRouter from './routes/teacherRoute.js';
 
 // app config
 const app = express();
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 4000
 const server = http.createServer(app)
 const io = new Server(server)
 connectDB()
@@ -109,6 +109,26 @@ io.on('connection', (socket) => {
         })
         console.log(fullCode);
     })
+
+    // Listen for executions
+    socket.on('student_execution', (data) => {
+        const { studentId, language, output, isError } = data;
+        
+        // Ensure card exists
+        createStudentCard(studentId);
+
+        // Update the terminal box
+        const term = document.getElementById(`term-${studentId}`);
+        if (term) {
+            term.style.color = isError ? "#ff5555" : "#55ff55"; // Red for errors, Green for success
+            term.textContent = `[${language.toUpperCase()}] > \n${output}`;
+            
+            // Visual flair: flash the border to catch the teacher's attention
+            const card = document.getElementById(`card-${studentId}`);
+            card.style.borderColor = "blue";
+            setTimeout(() => card.style.borderColor = "#333", 500);
+        }
+    });
 
     // Handle disconnection
     socket.on('disconnect', ()=>{

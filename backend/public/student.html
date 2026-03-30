@@ -5,7 +5,21 @@
     <p>Status: <span id="status">Connecting...</span></p>
     
     <textarea id="editor" style="width: 100%; height: 300px; font-family: monospace;" placeholder="Write your code here..."></textarea>
+    <div style="margin-bottom: 10px;">
+        <select id="languageSelect">
+            <option value="javascript">Node.js (JavaScript)</option>
+            <option value="python">Python</option>
+        </select>
+        <button onclick="runCode()" style="padding: 5px 15px; background: #28a745; color: white; border: none; cursor: pointer;">Run Code</button>
+    </div>
 
+    <div style="margin-top: 10px; background: #1e1e1e; color: #fff; padding: 10px; border-radius: 5px;">
+        <strong>Terminal Output:</strong>
+        <pre id="terminal" style="margin: 0; min-height: 50px; white-space: pre-wrap;"></pre>
+    </div>
+    <button onclick="submitExam()" style="padding: 5px 15px; background: #007bff; color: white; border: none; cursor: pointer; margin-left: 10px;">
+        Submit Final Answer
+    </button>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://unpkg.com/fast-diff/diff.js"></script>
     <script>
@@ -55,6 +69,89 @@
     setInterval(() => {
         socket.emit('code_full_sync', editor.value);
     }, 10000);
+
+    async function runCode() {
+        const code = editor.value;
+        const language = document.getElementById('languageSelect').value;
+        const terminal = document.getElementById('terminal');
+        
+        terminal.textContent = "Running code...";
+        terminal.style.color = "#aaa";
+
+        try {
+            // Note: If you kept verifyToken in your route, you MUST add the Authorization header here
+            // using the token you got from Postman.
+            const response = await fetch('http://localhost:4000/api/submission/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                    // 'Authorization': `Bearer YOUR_POSTMAN_TOKEN_HERE` 
+                },
+                body: JSON.stringify({
+                    language: language,
+                    code: code
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                terminal.style.color = result.isError ? "#ff5555" : "#55ff55";
+                terminal.textContent = result.output;
+            } else {
+                terminal.style.color = "#ff5555";
+                terminal.textContent = result.message || "Execution failed.";
+            }
+        } catch (error) {
+            terminal.style.color = "#ff5555";
+            terminal.textContent = "Server error: Could not reach execution API.";
+        }
+        async function submitExam() {
+        const code = editor.value;
+        const language = document.getElementById('languageSelect').value;
+        const terminal = document.getElementById('terminal');
+        const output = terminal.textContent;
+        const token = localStorage.getItem('token'); // Grab the JWT
+
+        // Basic validation so they don't submit empty code
+        if (output === "Awaiting execution..." || output === "") {
+            alert("Please Run your code at least once before submitting!");
+            return;
+        }
+
+        if (confirm("Are you sure you want to submit? You cannot change your answer after this.")) {
+            try {
+                const response = await fetch('/api/submissions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Re-enable authorization if you are using verifyToken
+                        // 'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        studentId: socket.id, // Or pull their actual ID from localStorage
+                        language: language,
+                        code: code,
+                        output: output,
+                        isError: terminal.style.color === "rgb(255, 85, 85)" // Check if the output was red
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert("Exam submitted successfully! You may now close this window.");
+                    // Optional: Disable the editor so they can't keep typing
+                    document.getElementById('editor').disabled = true;
+                } else {
+                    alert("Submission failed: " + result.message);
+                }
+            } catch (error) {
+                alert("Server error. Please try again.");
+            }
+        }
+    }
+    }
 
 </script>
 </body>
