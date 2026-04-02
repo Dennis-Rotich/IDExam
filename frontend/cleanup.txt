@@ -1,0 +1,6 @@
+Modularize pages/Settings.tsx
+populate src/types/ with the actual types
+use dynamic imports to reduce chunk sizes :
+    For tAhIni IDExam, you likely have heavy components for the Proctoring Agent (webcam logic, face detection) that aren't needed on the login page. 
+    Use React.lazy to only load that code when the student actually starts the exam.
+    
