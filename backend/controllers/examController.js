@@ -3,10 +3,10 @@ import examModel from "../models/examModel.js";
 const createExam = async(req, res)=>{
     try {
         
-        const {teacherId, title, durationInMinutes, problems} = req.body
+        const { title, durationInMinutes, problems} = req.body
 
         const newExam  = new examModel({
-            title, createdBy: teacherId, durationInMinutes, problems
+            title, createdBy: req.user.id, durationInMinutes, problems
         })
 
         await newExam.save();

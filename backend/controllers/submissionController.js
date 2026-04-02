@@ -29,7 +29,7 @@ const studentSubmit = async(req, res) => {
                 compile_timeout: 3000
             };
 
-            const {data} = await axios.post('http://127.0.0.1:2000/api/v2/execute', pistonPayload)
+            const {data} = await axios.post('http://68.210.224.3/api/v2/execute', pistonPayload)
 
             const compileOutput = data.compile ? data.compile.output : "";
             const runOutput = data.run ? data.run.output : "";
@@ -118,9 +118,8 @@ const runCode = async(req, res) => {
                 compile_timeout: 3000
         };
 
-        const { data } = await axios.post('http://127.0.0.1:2000/api/v2/execute', pistonPayload)
+        const { data } = await axios.post('http://68.210.224.3/api/v2/execute', pistonPayload)
 
-        const compileOutput = data.compile ? data.compile.output : "";
         const runOutput = data.run ? data.run.output : "";
         const exitCode = data.run ? data.run.code : 1;
         const isError = exitCode !== 0;
