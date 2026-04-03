@@ -1,4 +1,0 @@
-[2026-04-03T10:33:44.119Z] Student: cs.m | Violation: User exited fullscreen mode. | Total: 1
-[2026-04-03T10:33:51.895Z] Student: cs.m | Violation: User exited fullscreen mode. | Total: 2
-[2026-04-03T10:33:52.066Z] Student: cs.m | Violation: User switched applications or clicked outside the exam window. | Total: 3
-[2026-04-03T10:34:00.540Z] Student: cs.m | Violation: User switched applications or clicked outside the exam window. | Total: 4
