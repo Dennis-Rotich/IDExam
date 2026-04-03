@@ -37,7 +37,7 @@ export function StudentAuth({ content }: { content: any }) {
   };
 
   return (
-    <div className="min-h-screen w-full text-left">
+    <div className="w-full text-left">
       {/*Form (Light Mode) */}
       <div className="flex flex-col justify-center items-center bg-white p-8 sm:p-12">
         <div className="w-full max-w-[400px] space-y-8">

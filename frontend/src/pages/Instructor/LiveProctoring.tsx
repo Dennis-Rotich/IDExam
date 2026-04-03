@@ -28,38 +28,38 @@ const ALERTS = [
 ];
 
 const HISTOGRAM_DATA = [
-  { label: "<50", count: 1, color: "bg-destructive/50", height: "h-2" },
-  { label: "50s", count: 2, color: "bg-amber-500/40", height: "h-6" },
-  { label: "60s", count: 5, color: "bg-amber-500/40", height: "h-16" },
-  { label: "70s", count: 9, color: "bg-blue-500/40", height: "h-24" },
-  { label: "80s", count: 8, color: "bg-emerald-500/40", height: "h-20" },
+  { label: "<40", count: 1, color: "bg-destructive/70", height: "h-2" },
+  { label: "50s", count: 2, color: "dark:bg-white/80 bg-black", height: "h-6" },
+  { label: "60s", count: 5, color: "dark:bg-white/80 bg-black", height: "h-16" },
+  { label: "70s", count: 9, color: "dark:bg-white/80 bg-black", height: "h-24" },
+  { label: "80s", count: 8, color: "bg-emerald-500/50", height: "h-20" },
   { label: "90+", count: 4, color: "bg-emerald-500/60", height: "h-12" },
 ];
 
 const getScoreColor = (score: number) => {
   if (score >= 75) return "text-emerald-500";
-  if (score >= 50) return "text-amber-500";
+  if (score >= 50) return "dark:text-white/80 text-black";
   return "text-red-500";
 };
 
 const getProgressBarColor = (score: number) => {
   if (score >= 75) return "bg-emerald-500";
-  if (score >= 50) return "bg-amber-500";
-  return "bg-destructive";
+  if (score >= 50) return "dark:bg-white/80 bg-black";
+  return "bg-destructive/90";
 };
 
 const getAlertStyle = (type: string) => {
   switch (type) {
-    case "warning": return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-    case "critical": return "bg-destructive/10 text-red-500 border-destructive/20";
-    case "info": return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-    default: return "bg-muted text-muted-foreground border-border";
+    case "warning": return "dark:text-white/80 text-black";
+    case "critical": return "dark:text-white/80 text-black text-red-500";
+    case "info": return "dark:text-white/80 text-black";
+    default: return "bg-muted text-muted-foreground";
   }
 };
 
 const getAlertIcon = (type: string) => {
   switch (type) {
-    case "warning": return <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500" />;
+    case "warning": return <AlertTriangle className="w-4 h-4 mt-0.5 dark:text-white/80 text-black" />;
     case "critical": return <ShieldAlert className="w-4 h-4 mt-0.5 text-red-500" />;
     case "info": return <Info className="w-4 h-4 mt-0.5 text-blue-500" />;
     default: return null;
@@ -129,12 +129,12 @@ export function LiveProctoring() {
             <Clock className="w-3.5 h-3.5" /> Time Remaining
           </div>
           <div className="p-6 flex-1 flex flex-col justify-center">
-            <div className={`text-5xl font-mono font-medium tracking-tight ${isExamEnded ? "text-red-500" : "text-[#f5a623]"}`}>
+            <div className={`text-5xl font-mono font-medium tracking-tight ${isExamEnded ? "text-red-500" : ""}`}>
               {isExamEnded ? "00:00" : `${38 + addedMinutes}:12`}
             </div>
             <div className="w-full h-1.5 bg-muted rounded-full mt-4 overflow-hidden">
               <div 
-                className={`h-full ${isExamEnded ? "bg-destructive w-full" : "bg-[#f5a623] w-[60%]"}`} 
+                className={`h-full ${isExamEnded ? "bg-destructive w-full" : "bg-black dark:bg-white w-[60%]"}`} 
                 style={!isExamEnded ? { width: `${Math.min(100, 60 + (addedMinutes * 0.5))}%` } : {}}
               />
             </div>

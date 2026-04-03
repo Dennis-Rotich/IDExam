@@ -37,7 +37,7 @@ export function InstructorAuth({ content }: { content: any }) {
   };
 
   return (
-    <div className="w-full max-w-[400px] space-y-8">
+    <div className="w-full max-w-[400px] space-y-8 min-h-screen">
       {/* Mobile Header (Hidden on Desktop) */}
       <div className="flex lg:hidden items-center gap-2 mb-8">
         <span className="text-xl font-bold tracking-tighter text-slate-900">

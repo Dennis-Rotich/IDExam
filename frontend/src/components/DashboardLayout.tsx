@@ -1,21 +1,32 @@
 import { Outlet, useNavigate, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { DashboardPageLoading } from "../pages/Loading/DashboardPageLoading";
 import { SidebarProvider } from "./ui/sidebar";
 import { AppSidebar } from "./Layout/AppSidebar";
 import { ProfileDropdown } from "./ProfileUser";
-import { useAuth } from "../context/AuthContext"; 
-import { Loader2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export function DashboardLayout() {
-  const { user, isLoading, logOut } = useAuth();
+  const { user, isLoading: authLoading, logOut } = useAuth();
   const navigate = useNavigate();
+  const [isDemoLoading, setIsDemoLoading] = useState(true);
 
-  // Handle Loading State
-  if (isLoading)
-    return (
-      <div>
-        <Loader2 className="mr-2 h-18 w-18 animate-spin" />
-      </div>
-    );
+  useEffect(() => {
+    // Set the delay in milliseconds (3000ms = 3 seconds)
+    const timer = setTimeout(() => {
+      setIsDemoLoading(false);
+    }, 3000);
+
+    // Cleanup the timer if the component unmounts
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show the skeleton if auth is still checking OR if our demo timer is still running
+  const isLoading = authLoading || isDemoLoading;
+
+  if (isLoading) {
+    return <DashboardPageLoading />;
+  }
 
   // Route Guard: If no user, boot to login
   if (!user) return <Navigate to="/auth/student" replace />;

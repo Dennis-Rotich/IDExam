@@ -55,7 +55,7 @@ export function InstructorOverview() {
         <div className="flex flex-wrap gap-8 text-sm">
           <div><p className="text-muted-foreground mb-1 flex items-center gap-1.5"><Users className="w-3.5 h-3.5"/> Candidates</p><p className="text-2xl font-mono font-medium text-foreground">124</p></div>
           <div><p className="text-muted-foreground mb-1 flex items-center gap-1.5"><Activity className="w-3.5 h-3.5"/> Active Exams</p><p className="text-2xl font-mono font-medium text-foreground">3</p></div>
-          <div><p className="text-muted-foreground mb-1 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5"/> Pending Grade</p><p className="text-2xl font-mono font-medium text-amber-500">48</p></div>
+          <div><p className="text-muted-foreground mb-1 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5"/> Pending Grade</p><p className="text-2xl font-mono font-foreground  ">48</p></div>
           <div><p className="text-muted-foreground mb-1 flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5"/> Integrity</p><p className="text-2xl font-sans font-medium text-emerald-500">Secure</p></div>
         </div>
       </div>
@@ -86,7 +86,7 @@ export function InstructorOverview() {
         <div className="lg:col-span-3 flex flex-col border border-border rounded-lg overflow-hidden bg-card/30 h-[400px]">
           <div className="py-3 px-5 border-b border-border bg-muted/10 flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">Action Queue</h2>
-            <span className="text-[10px] font-mono bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full">48 Pending</span>
+            <span className="text-[10px] font-mono bg-amber-500/10 text-foreground border-amber-500/20 px-2 py-0.5 rounded-full">48 Pending</span>
           </div>
           
           <div className="flex-1 overflow-y-auto p-2 divide-y divide-border">

@@ -23,7 +23,7 @@ export function ExamAuth({ content }: { content: any }) {
   };
 
   return (
-    <div className="w-full space-y-8 flex flex-col items-center">
+    <div className="w-full space-y-8 flex flex-col items-center min-h-screen">
       {/* Mobile Header (Hidden on Desktop) */}
       <div className="flex lg:hidden justify-center gap-2 mb-8">
         <span className="text-xl font-bold tracking-tighter text-slate-900">

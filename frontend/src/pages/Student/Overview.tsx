@@ -98,7 +98,7 @@ const RECENT_RESULTS = [
     date: "1 week ago",
   },
   {
-    id: "r3",
+    id: "r3", 
     title: "Physics Lab Safety",
     subject: "PHY101",
     score: 55,
@@ -109,7 +109,7 @@ const RECENT_RESULTS = [
 
 function scoreColor(score: number) {
   if (score >= 80) return "text-emerald-500";
-  if (score >= 60) return "text-amber-500";
+  if (score >= 40) return "";
   return "text-destructive";
 }
 
@@ -159,7 +159,7 @@ export function StudentOverview() {
               className="flex items-center justify-between p-3 px-4 rounded-md bg-muted/10 border border-border/50 hover:bg-muted/30 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <item.icon className={`w-4 h-4 ${item.iconColor}`} />
+                <item.icon className={`w-4 h-4 dark:text-white text-black`} />
                 <span className="font-medium text-sm text-foreground">
                   {item.title}
                 </span>

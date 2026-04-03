@@ -49,14 +49,14 @@ const TEST_HISTORY = [
 // --- HELPER FUNCTIONS ---
 function scoreColor(score: number): string {
   if (score >= 80) return "text-emerald-500";
-  if (score >= 60) return "text-amber-500";
+  if (score >= 40) return "";
   return "text-destructive";
 }
 
 function getStatusIcon(score: number, passed: boolean) {
-  if (!passed || score < 60) return <XCircle className="w-4 h-4 text-destructive" />;
+  if (!passed || score < 60 && score > 40) return <CheckCircle2 className="w-4 h-4" />;
   if (score >= 80) return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
-  return <AlertCircle className="w-4 h-4 text-amber-500" />;
+  return <AlertCircle className="w-4 h-4" />;
 }
 
 export function StudentResultsPage() {

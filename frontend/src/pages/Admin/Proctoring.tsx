@@ -45,16 +45,16 @@ const PLATFORM_LIVE_STATS = {
 // --- HELPER FUNCTIONS ---
 function getSeverityStyles(severity: Severity) {
   switch (severity) {
-    case "Critical": return { color: "text-red-500 dark:text-red-400", bg: "bg-red-500/10 border-red-500/20", icon: ShieldAlert };
-    case "Warning": return { color: "text-amber-500 dark:text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: AlertTriangle };
+    case "Critical": return { color: "text-red-500 dark:text-red-600", bg: "", icon: ShieldAlert };
+    case "Warning": return { color: "text-amber-500 dark:text-amber-600", bg: "", icon: AlertTriangle };
     case "Resolved": return { color: "text-muted-foreground", bg: "bg-muted/30 border-border", icon: CheckCircle2 };
   }
 }
 
 function getStatusBadge(status: string) {
   switch (status) {
-    case "Needs Review": return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
-    case "Assigned": return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+    case "Needs Review": return "text-red-500 dark:text-red-600";
+    case "Assigned": return "text-blue-500 dark:text-blue-600";
     default: return "bg-muted text-muted-foreground border-border";
   }
 }
@@ -83,7 +83,7 @@ export function AdminProctoringPage() {
         
         <div className="flex flex-wrap items-center gap-6 text-sm">
           <div className="flex items-center gap-4 pr-6 border-r border-border">
-            <Activity className="w-8 h-8 text-emerald-500 opacity-20" />
+            <Activity className="w-8 h-8 text-emerald-700" />
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Live Now</p>
               <p className="text-lg font-mono font-medium text-foreground">{PLATFORM_LIVE_STATS.activeExams} Exams <span className="text-muted-foreground mx-1">•</span> {PLATFORM_LIVE_STATS.liveStudents} Users</p>
@@ -92,11 +92,11 @@ export function AdminProctoringPage() {
           <div className="flex items-center gap-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 text-red-500">Critical</p>
-              <p className="text-xl font-mono font-bold text-red-500 dark:text-red-400">{PLATFORM_LIVE_STATS.criticalOpen}</p>
+              <p className="text-xl font-mono font-bold text-red-500 dark:text-red-500">{PLATFORM_LIVE_STATS.criticalOpen}</p>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 text-amber-500">Warnings</p>
-              <p className="text-xl font-mono font-bold text-amber-500 dark:text-amber-400">{PLATFORM_LIVE_STATS.warningsOpen}</p>
+              <p className="text-xl font-mono font-bold">{PLATFORM_LIVE_STATS.warningsOpen}</p>
             </div>
           </div>
           <Button variant="outline" className="h-9 rounded-full px-4 text-xs ml-2 border-border text-foreground hover:bg-muted">
@@ -167,7 +167,7 @@ export function AdminProctoringPage() {
                   
                   {/* Left Side: Severity & Details */}
                   <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className={`w-7 h-7 shrink-0 flex justify-center items-center rounded border ${styles.bg} ${styles.color}`}>
+                    <div className={`w-7 h-7 shrink-0 flex justify-center items-center rounded ${styles.bg} ${styles.color}`}>
                       <Icon className="w-4 h-4" />
                     </div>
                     
@@ -193,7 +193,7 @@ export function AdminProctoringPage() {
 
                     {/* Increased width from w-24 to w-32 */}
                     <span className="hidden md:flex items-center w-32 text-left">
-                      <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${getStatusBadge(inc.status)}`}>
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${getStatusBadge(inc.status)}`}>
                         {inc.status}
                       </span>
                     </span>

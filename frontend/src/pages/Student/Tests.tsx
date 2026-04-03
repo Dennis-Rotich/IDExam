@@ -20,7 +20,7 @@ function getStatusIcon(availability: string, inProgress?: boolean) {
   if (availability === "completed") return <Check className="w-4 h-4 text-emerald-500" />;
   if (availability === "locked") return <Lock className="w-4 h-4 text-muted-foreground/50" />;
   if (availability === "upcoming") return <CalendarClock className="w-4 h-4 text-blue-500" />;
-  if (inProgress) return <PlayCircle className="w-4 h-4 text-amber-500" />;
+  if (inProgress) return <PlayCircle className="w-4 h-4" />;
   return <div className="w-4 h-4 rounded-full border border-muted-foreground/50" />; // Available/Not started
 }
 
