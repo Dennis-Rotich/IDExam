@@ -86,7 +86,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"name\": \"Add your name in the body\"\n}",
+					"raw": "{\n\t\"email\": \"leahfrog@gmail.com\",\n    \"password\": \"hello world\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
