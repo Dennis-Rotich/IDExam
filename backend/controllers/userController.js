@@ -37,12 +37,10 @@ const register = async (req, res) => {
     // technically the student's registration no.
     if (role === "student") {
       if (!studentId) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Student ID is required for students.",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Student ID is required for students.",
+        });
       }
       const existingStudentId = await userModel.findOne({ studentId });
       if (existingStudentId) {
@@ -104,9 +102,10 @@ const login = async (req, res) => {
     if (user.isDeleted) {
       return res
         .status(403) // 403 Forbidden is the correct semantic status here
-        .json({ 
-          success: false, 
-          message: "This account has been deactivated or deleted. Please contact an administrator to restore access." 
+        .json({
+          success: false,
+          message:
+            "This account has been deactivated or deleted. Please contact an administrator to restore access.",
         });
     }
 
@@ -148,7 +147,6 @@ const login = async (req, res) => {
 //  READ: Get Logged-in User Profile
 const getUserProfile = async (req, res) => {
   try {
-    // Assumes you have an auth middleware that sets req.user
     const user = await userModel.findById(req.user.id).select("-password");
 
     if (!user) {
@@ -187,7 +185,7 @@ const getAllUsers = async (req, res) => {
 // UPDATE: Update User Details
 const updateUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = req.user.id;
     const { name, institution, avatarUrl, cohort } = req.body;
 
     // Prevent password or role updates through this general route
@@ -200,7 +198,7 @@ const updateUser = async (req, res) => {
 
     const updatedUser = await userModel
       .findByIdAndUpdate(
-        id,
+        userId,
         { $set: updateData },
         { new: true, runValidators: true },
       )
@@ -212,13 +210,11 @@ const updateUser = async (req, res) => {
         .json({ success: false, message: "User not found." });
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "User updated successfully.",
-        user: updatedUser,
-      });
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully.",
+      user: updatedUser,
+    });
   } catch (error) {
     console.error("Update User Error:", error.message);
     res
@@ -230,13 +226,37 @@ const updateUser = async (req, res) => {
 // DELETE: Remove User
 const deleteUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = req.params.id || req.user.id;
 
     const user = await userModel.findByIdAndUpdate(
-      id,
+      userId,
       { $set: { deletedAt: new Date(), isDeleted: true } },
       { new: true },
     );
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    res
+      .status(200)
+      .json({ success: true, message: "User deleted successfully." });
+  } catch (error) {
+    console.error("Delete User Error:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error deleting user." });
+  }
+};
+
+// delete user by id
+const deleteUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await userModel.findByIdAndDelete(userId);
 
     if (!user) {
       return res
@@ -288,4 +308,13 @@ const undeleteUser = async (req, res) => {
   }
 };
 
-export { register, login, getUserProfile, getAllUsers, updateUser, deleteUser, undeleteUser };
+export {
+  register,
+  login,
+  getUserProfile,
+  getAllUsers,
+  updateUser,
+  deleteUser,
+  undeleteUser,
+  deleteUserById,
+};
