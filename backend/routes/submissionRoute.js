@@ -1,10 +1,24 @@
 import express from 'express';
-import { studentSubmit, runCode } from "../controllers/submissionController.js";
-import {verifyToken} from "../middlewares/auth.js"
+import { 
+    studentSubmit, 
+    runCode, 
+    autosave, 
+    getSubmission 
+} from "../controllers/submissionController.js";
+import { verifyToken } from "../middlewares/auth.js";
 
-const submissionRouter = express.Router()
+const submissionRouter = express.Router();
 
-submissionRouter.post('/submit/:examId/problem/:problemId', verifyToken, studentSubmit)
-submissionRouter.post('/test', runCode)
+// Fetch a specific submission session
+submissionRouter.get('/:sessionId', verifyToken, getSubmission);
+
+// Autosave progress during the exam
+submissionRouter.post('/autosave/:sessionId', verifyToken, autosave);
+
+// Submit a specific problem for evaluation
+submissionRouter.post('/submit/:sessionId', verifyToken, studentSubmit);
+
+// Run code without submitting/saving (Dry run)
+submissionRouter.post('/run', runCode);
  
-export default submissionRouter
+export default submissionRouter;
