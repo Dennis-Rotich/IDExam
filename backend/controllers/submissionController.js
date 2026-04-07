@@ -299,4 +299,4 @@ const getSubmission = async (req, res) => {
     }
 };
 
-export { studentSubmit, runCode, autosave };
+export { studentSubmit, runCode, autosave, getSubmission };
