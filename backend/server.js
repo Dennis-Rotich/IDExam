@@ -6,8 +6,7 @@ import cors from 'cors'
 import connectDB from './config/mongodb.js';
 import examRouter from './routes/examRoute.js';
 import submissionRouter from './routes/submissionRoute.js';
-import studentRouter from './routes/studentRoute.js';
-import teacherRouter from './routes/teacherRoute.js';
+import userRouter from './routes/userRoute.js';
 
 // app config
 const app = express();
@@ -18,14 +17,13 @@ connectDB()
 
 //middlewares
 app.use(express.static('public'));
-app.use(express.json())
-app.use(cors())
+app.use(express.json());
+app.use(cors());
 
 // api endpoints
-app.use('/api/exam', examRouter)
-app.use('/api/submission', submissionRouter)
-app.use('/api/teacher', teacherRouter)
-app.use('/api/student', studentRouter)
+app.use('/exam', examRouter);
+app.use('/submission', submissionRouter);
+app.use('/user', userRouter);
 
 // Store active exam sessions
 const EXAM_ID = 'CS101';
@@ -95,7 +93,7 @@ io.on('connection', (socket) => {
         });
 
         // LOG 2: Did the reconstruction work?
-        console.log("🏗️ RECONSTRUCTED TEXT:", newText);
+        console.log("RECONSTRUCTED TEXT:", newText);
 
         studentStates[studentId] = newText;
         updateView(studentId, newText);
@@ -137,7 +135,8 @@ io.on('connection', (socket) => {
     });
 })
 
-app.get('/',(req,res)=>{
+// make the api route global 
+app.get('/api',(req,res)=>{
     res.send('API WORKING WELL')
 })
 
