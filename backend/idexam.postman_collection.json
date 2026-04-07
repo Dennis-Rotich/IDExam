@@ -9,31 +9,54 @@
 	},
 	"item": [
 		{
-			"name": "Get data",
+			"name": "user registration",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"type": "text/javascript",
 						"exec": [
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
 							"});"
-						]
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
 					}
 				}
 			],
 			"request": {
-				"method": "GET",
-				"header": [],
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "'Bearer '",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Isaiah Juma\",\n    \"email\": \"leahfrog@gmail.com\",\n    \"password\": \"hello world\",\n    \"role\": \"student\",\n    \"studentId\": \"jh/jj/54/67/88\",\n    \"institution\": \"tAhIni University\",\n    \"avatarUrl\": \"\",\n    \"cohort\": \"27-29\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
-					"raw": "postman-echo.com/get",
+					"raw": "http://localhost:4000/api/user/register",
+					"protocol": "http",
 					"host": [
-						"postman-echo",
-						"com"
+						"localhost"
 					],
+					"port": "4000",
 					"path": [
-						"get"
+						"api",
+						"user",
+						"register"
 					]
 				},
 				"description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
@@ -41,18 +64,20 @@
 			"response": []
 		},
 		{
-			"name": "Post data",
+			"name": "user login",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"type": "text/javascript",
 						"exec": [
 							"pm.test(\"Successful POST request\", function () {",
 							"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
 							"});",
 							""
-						]
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
 					}
 				}
 			],
@@ -69,16 +94,205 @@
 					}
 				},
 				"url": {
-					"raw": "postman-echo.com/post",
+					"raw": "http://localhost:4000/api/user/login",
+					"protocol": "http",
 					"host": [
-						"postman-echo",
-						"com"
+						"localhost"
 					],
+					"port": "4000",
 					"path": [
-						"post"
+						"api",
+						"user",
+						"login"
 					]
 				},
 				"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+			},
+			"response": []
+		},
+		{
+			"name": "fetch user profile",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "\"Bearer \"",
+						"description": "Enter for each request",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:4000/api/user/profile",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"user",
+						"profile"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get all users",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "\"Bearer \"",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:4000/api/user/all",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"user",
+						"all"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "update user",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "\"Bearer \"",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"title\": \"Updated Midterm Exam\",\n  \"durationInMinutes\": 120,\n  \"isActive\": true,\n  \"problems\": [\n    {\n      \"title\": \"Two Sum\",\n      \"description\": \"Find two numbers...\",\n      \"testCases\": [\n         { \"input\": \"[2,7,11,15], 9\", \"expectedOutput\": \"[0,1]\", \"isHidden\": false, \"points\": 10 }\n      ]\n    }\n  ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:4000/api/user/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"user",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "soft delete user",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "\"Bearer \"",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:4000/api/user/deactivate",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"user",
+						"deactivate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "soft delete another user",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "\"Bearer \"",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:4000/api/user/deactivate/:id",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"user",
+						"deactivate",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": ""
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "restore a deleted user",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "\"Bearer \"",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:4000/api/user/restore/:id",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"user",
+						"restore",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": ""
+						}
+					]
+				}
 			},
 			"response": []
 		}
