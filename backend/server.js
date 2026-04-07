@@ -137,7 +137,7 @@ io.on('connection', (socket) => {
 
 // make the api route global 
 app.get('/api',(req,res)=>{
-    res.send('API WORKING WELL')
+    res.status(200).json({success: true, message: 'API WORKING WELL'})
 })
 
 
