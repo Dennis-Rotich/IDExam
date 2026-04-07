@@ -23,7 +23,7 @@ userRouter.post('/login', login);
 userRouter.get('/profile', verifyToken, getUserProfile);
 // Update a user's details by ID 
 // updated it to fetch id from the session and not the params
-userRouter.put('/', verifyToken, updateUser);
+userRouter.put('/profile', verifyToken, updateUser);
 
 // Administrative Routes 
 // ==========================================
