@@ -39,7 +39,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"name\": \"Isaiah Juma\",\n    \"email\": \"leahfrog@gmail.com\",\n    \"password\": \"hello world\",\n    \"role\": \"student\",\n    \"studentId\": \"jh/jj/54/67/88\",\n    \"institution\": \"tAhIni University\",\n    \"avatarUrl\": \"\",\n    \"cohort\": \"27-29\"\n}",
+					"raw": "{\n    \"name\": \"Morgan Oyala\",\n    \"email\": \"morfrog@gmail.com\",\n    \"password\": \"hello world\",\n    \"role\": \"instructor\",\n    \"institution\": \"tAhIni University\",\n    \"avatarUrl\": \"vds\",\n    \"cohort\": \"27-29\"\n}   ",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -178,7 +178,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"title\": \"Updated Midterm Exam\",\n  \"durationInMinutes\": 120,\n  \"isActive\": true,\n  \"problems\": [\n    {\n      \"title\": \"Two Sum\",\n      \"description\": \"Find two numbers...\",\n      \"testCases\": [\n         { \"input\": \"[2,7,11,15], 9\", \"expectedOutput\": \"[0,1]\", \"isHidden\": false, \"points\": 10 }\n      ]\n    }\n  ]\n}",
+					"raw": "{\n    \"name\": \"Isaiah Juma\",\n    \"institution\": \"tAhIni University\",\n    \"avatarUrl\": \"sdfghj\",\n    \"cohort\": \"24-27\"\n}   ",
 					"options": {
 						"raw": {
 							"language": "json"
