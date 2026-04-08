@@ -87,7 +87,14 @@ const login = async (req, res) => {
   try {
     const { identifier, password } = req.body;
 
-    // Find by email OR studentId
+    if (!identifier) {
+      throw Error("Error! No identifier provided. Provide your Email or Student ID");
+    }
+    
+    if (!password) {
+      throw Error("Error! No password provided.");
+    }
+
     const user = await userModel.findOne({
       $or: [{ email: identifier }, { studentId: identifier }],
     });
