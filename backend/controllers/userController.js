@@ -147,7 +147,7 @@ const login = async (req, res) => {
     console.error("Login Error:", error.message);
     res
       .status(500)
-      .json({ success: false, message: "Server error during login.",error });
+      .json({ success: false, message: "Server error during login.", error: error.message });
   }
 };
 
