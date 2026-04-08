@@ -1,92 +1,52 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { type UserRole, type ProfileUser } from "../components/ProfileUser";
+import { type User, type UserRole, type RegisterUserRequest, type LoginUserRequest } from "../types/auth";
+import { loginUserApi, registerUserApi } from "../api/auth"
+import { apiClient } from "../lib/axiosApi";
 
-// --- Mock Data ---
-const INSTRUCTOR_STUB: ProfileUser = {
-  displayName: "Jane Doe",
-  email: "jane@tahini.com",
-  role: "instructor",
-  isVerified: true,
-  unreadNotifications: 3,
-  activeTests: 7,
-};
-
-const STUDENT_STUB: ProfileUser = {
-  displayName: "John Doe",
-  email: "john@tahini.com",
-  role: "student",
-  isVerified: false,
-  unreadNotifications: 0,
-  testsCompleted: 12,
-  averageScore: 84,
-};
-
-const ADMIN_STUB: ProfileUser = {
-  displayName: "John Doe",
-  email: "admin@tahini.edu",
-  role: "admin",
-  isVerified: true,
-  unreadNotifications: 5,
-  // Optional: Admin-specific fields (if your interface supports them)
-  department: "Platform Operations",
-  accessLevel: "Superadmin",
-  lastActive: "Just now",
-};
-
-// --- Types ---
 interface AuthContextValue {
-  user: ProfileUser | null;
+  user: User | null;
   isLoading: boolean;
-  signUp: (role: UserRole) => Promise<void>;
-  logIn: (role: UserRole) => Promise<void>;
-  logOut: () => Promise<void>;
+  signUp: (data: RegisterUserRequest) => Promise<void>;
+  logIn: (data: LoginUserRequest) => Promise<void>;
+  logOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Start as null to simulate a fresh, unauthenticated session
-  const [user, setUser] = useState<ProfileUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  async function signUp(role: UserRole){
+  // This is the callback we pass to loginUserApi
+  const setAuthData = (userData: User, token: string) => {
+    setUser(userData);
+    localStorage.setItem("token", token);
+    // The apiClient.defaults.headers assignment is already handled inside loginUserApi, 
+    // but storing it here ensures React state updates.
+  };
+
+  async function signUp(data: RegisterUserRequest) {
     setIsLoading(true);
-    // Simulate network latency
-    await new Promise((res) => setTimeout(res, 800));
-    
-    if (role === "instructor") {
-      setUser(INSTRUCTOR_STUB);
-    } else if (role === "admin"){
-      setUser(ADMIN_STUB);
-    } else {
-      setUser(STUDENT_STUB);
+    try {
+      await registerUserApi(data);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   }
 
-  async function logIn(role: UserRole) {
+  async function logIn(data: LoginUserRequest) {
     setIsLoading(true);
-    // Simulate network latency
-    await new Promise((res) => setTimeout(res, 800));
-    
-    if (role === "instructor") {
-      setUser(INSTRUCTOR_STUB);
-    } else if (role === "admin"){
-      setUser(ADMIN_STUB);
-    } else {
-      setUser(STUDENT_STUB);
+    try {
+      await loginUserApi(data, setAuthData);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   }
 
-  async function logOut() {
-    setIsLoading(true);
-    // Simulate network latency
-    await new Promise((res) => setTimeout(res, 800));
+  function logOut() {
     setUser(null);
-    setIsLoading(false);
+    localStorage.removeItem("token");
+    delete apiClient.defaults.headers.common["Authorization"];
   }
 
   return (
@@ -96,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// --- Hooks ---
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
