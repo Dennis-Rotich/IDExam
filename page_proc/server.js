@@ -4,7 +4,7 @@ const fs = require('fs')
 const path = require('path')
 
 const app = express()
-const PORT = 3000
+const PORT = 3500
 
 // Middleware
 app.use(cors()) // Allows the HTML page to communicate with this server
