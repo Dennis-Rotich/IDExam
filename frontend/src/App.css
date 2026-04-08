@@ -1,5 +1,13 @@
-#root {
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
   width: 100%;
-  margin: 0 auto;
-  text-align: center;
+}
+
+/* You can keep app-container if you are using it as a main wrapper */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
