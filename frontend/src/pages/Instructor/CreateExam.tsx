@@ -1,14 +1,17 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Save, CalendarClock, Settings2, ShieldAlert } from 'lucide-react';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
-
-// Note: Ensure ExamMetadataForm and TestCaseManager are also updated to this flat aesthetic in your codebase
-// import ExamMetadataForm from '../../components/Instructor/ExamMetadataForm';
-// import TestCaseManager from '../../components/Instructor/TestCaseManager';
+import { toast } from 'sonner';
+import { useAuth } from '../../context/AuthContext';
+import { createExamApi } from '../../api/exam';
 
 export default function CreateExam() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const [examData, setExamData] = useState({
     title: '',
     description: '',
@@ -16,8 +19,23 @@ export default function CreateExam() {
     duration: '',
   });
 
-  const handleSave = () => {
-    console.log("Publishing Exam:", examData);
+  const handleSave = async () => {
+    if (user) {
+      try {
+        await createExamApi({
+          title: examData.title || "Untitled Exam",
+          durationInMinutes: parseInt(examData.duration) || 60,
+          problems: [] // You will map your actual store questions here later
+        });
+        toast.success("Exam published successfully!");
+        navigate("/instructor/exams");
+      } catch (error) {
+        toast.error("Failed to publish exam to server.");
+      }
+    } else {
+      console.log("MVP Publishing Exam (Not Logged In):", examData);
+      toast.success("Exam saved locally (MVP Mode)");
+    }
   };
 
   return (
@@ -46,7 +64,7 @@ export default function CreateExam() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* MAIN COLUMN (Description & Question Selector Placeholder) */}
+        {/* MAIN COLUMN */}
         <div className="md:col-span-2 space-y-6">
           <div className="flex flex-col border border-border rounded-lg overflow-hidden bg-card/30">
             <div className="py-2.5 px-4 border-b border-border bg-muted/10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

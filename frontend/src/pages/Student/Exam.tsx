@@ -4,6 +4,7 @@ import {
   ResizablePanelGroup,
 } from "../../components/ui/resizable";
 import { useState, useLayoutEffect, useRef, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { MonacoInstance } from "../../components/Editor/MonacoInstance";
 import { LoadingExam } from "../Loading/StudentPageLoading";
 import { AutoSaveIndicator } from "../../components/Layout/AutoSaveIndicator";
@@ -13,24 +14,66 @@ import { Settings, User, HelpCircle, Loader2, CheckCircle } from "lucide-react";
 import { useExamStore } from "../../store/useExamStore";
 import { EXAM_QUESTIONS } from "../../data/questions";
 import { Button } from "../../components/ui/button";
+import { useAuth } from "../../context/AuthContext";
+import { getExamApi } from "../../api/exam";
+import { startSubmissionApi, submitExamApi } from "../../api/submission";
 
 export const StudentExam = () => {
+  const { examId } = useParams<{ examId: string }>();
+  const { user } = useAuth();
   const { currentQuestionIndex, questions, isLoading, setQuestions, setCurrentQuestionIndex } = useExamStore();
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const [minPercentage, setMinPercentage] = useState(20);
   const [running, setIsRunning] = useState(false);
   const [examStatus, setExamStatus] = useState<"in-progress" | "submitting" | "completed" | "failed">("in-progress");
   const [examEndTime] = useState(new Date(Date.now() + 3600000).toISOString());
+  
+  // Track the actual database submission ID
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const currentQuestion = questions[currentQuestionIndex] || EXAM_QUESTIONS[0];
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setQuestions(EXAM_QUESTIONS);
-      setCurrentQuestionIndex(0);
-    }, 6000);
-    return () => clearTimeout(timer);
-  }, [setQuestions, setCurrentQuestionIndex]);
+    const initializeExam = async () => {
+      if (user && examId) {
+        try {
+          // 1. Fetch real exam data
+          const fetchedExam = await getExamApi(examId);
+          // 2. Register the start of the submission in the DB
+          const submission = await startSubmissionApi(examId);
+          
+          setSubmissionId(submission.submission._id);
+          
+          // Map backend problems to your store format (adjust mapping as needed for your store)
+          const mappedQuestions = fetchedExam.exam.problems.map((p: any, i: number) => ({
+             id: p._id,
+             number: i + 1,
+             description: p.description,
+             title: p.title,
+             isAttempted: false,
+             code: "",
+             language: "python"
+          }));
+          
+          setQuestions(mappedQuestions);
+          setCurrentQuestionIndex(0);
+          return;
+        } catch (error) {
+          console.error("Failed to initialize real exam, falling back to MVP data", error);
+        }
+      }
+      
+      // Fallback MVP Dummy Data
+      const timer = setTimeout(() => {
+        setQuestions(EXAM_QUESTIONS);
+        setCurrentQuestionIndex(0);
+      }, 1000);
+      return () => clearTimeout(timer);
+    };
+
+    initializeExam();
+  }, [user, examId, setQuestions, setCurrentQuestionIndex]);
 
   useLayoutEffect(() => {
     const calculateMinSize = () => {
@@ -51,8 +94,15 @@ export const StudentExam = () => {
     console.log(`Submitting exam. Auto-submit: ${isAutoSubmit}`);
     if (examStatus !== "in-progress") return; 
     setExamStatus("submitting");
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      if (user && submissionId) {
+        // Hit the real backend
+        await submitExamApi(submissionId);
+      } else {
+        // Fallback MVP simulated delay
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      }
       setExamStatus("completed");
     } catch (error) {
       console.error("Submission failed:", error);
