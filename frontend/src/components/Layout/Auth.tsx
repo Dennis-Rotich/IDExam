@@ -56,7 +56,7 @@ export function AuthLayout() {
   }
 
   return (
-    <div className="h-screen w-full grid lg:grid-cols-2 text-left">
+    <div className="min-h-screen w-full grid lg:grid-cols-2 text-left">
       {/* LEFT PANEL: Dynamic Branding & Context (Dark Mode) */}
       <div className="h-screen hidden lg:flex flex-col justify-between bg-[#000] p-12 xl:p-16 border-r border-[#333]">
         {/* TOP: Brand & Tagline */}
