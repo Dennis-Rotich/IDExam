@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -7,37 +7,46 @@ import { Label } from "../../components/ui/label";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 
-export function StudentAuth({ content }: { content: any }) {
+export function StudentAuth() {
+  const content = useOutletContext<any>();
   const { signUp, logIn, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
+
+  // Controlled form state
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [studentId, setStudentId] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       if (isLogin) {
-        await logIn("student");
-        toast.success("Welcome back!"); // Success toast
+        // Backend login uses "identifier" which accepts email or studentId
+        await logIn({ identifier: email, password });
+        toast.success("Welcome back!");
+        navigate("/student");
       } else {
-        if (signUp) {
-          await signUp("student");
-          toast.success("Account created successfully!"); // Success toast
-        } else {
-          await logIn("student");
-          toast.success("Logged in successfully!"); // Success toast
-        }
+        await signUp({
+          name,
+          email,
+          password,
+          role: "student",
+          studentId, // Required by backend for students
+        });
+        toast.success("Account created successfully! Please log in.");
+        setIsLogin(true); // Flip to login view after successful registration
       }
-
-      navigate("/student");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Authentication error:", error);
-      toast.error("Authentication failed. Please check your credentials."); // Error toast
+      toast.error(error.response?.data?.message || "Authentication failed.");
     }
   };
 
   return (
-    <div className="min-h-screen w-full text-left">
+    <div className="w-full space-y-8 min-h-screen">
       {/*Form (Light Mode) */}
       <div className="flex flex-col justify-center items-center bg-white p-8 sm:p-12">
         <div className="w-full max-w-[400px] space-y-8">
@@ -64,17 +73,32 @@ export function StudentAuth({ content }: { content: any }) {
             className="text-left text-black space-y-6 border border-slate-200 p-6 rounded-xl shadow-sm bg-white h-[400px]"
           >
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-slate-700">
-                  Full Name
-                </Label>
-                <Input
-                  id="name"
-                  placeholder="Isaiah Juma"
-                  required
-                  className="bg-slate-50 border-slate-200 focus-visible:ring-blue-500"
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-slate-700">
+                    Full Name
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="bg-slate-50 border-slate-200 focus-visible:ring-blue-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="studentId">Student ID</Label>
+                  <Input
+                    id="studentId"
+                    placeholder="CS-2026"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    required={!isLogin}
+                    className="bg-slate-50 border-slate-200 focus-visible:ring-blue-500"
+                  />
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -84,7 +108,8 @@ export function StudentAuth({ content }: { content: any }) {
               <Input
                 id="email"
                 type="email"
-                placeholder="student@university.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="bg-slate-50 border-slate-200 focus-visible:ring-blue-500"
               />
@@ -107,6 +132,8 @@ export function StudentAuth({ content }: { content: any }) {
               <Input
                 id="password"
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 className="bg-slate-50 border-slate-200 focus-visible:ring-blue-500"
               />
@@ -145,7 +172,7 @@ export function StudentAuth({ content }: { content: any }) {
         </div>
 
         {/* Instructor Portal Link */}
-        <div className="flex flex-col gap-2 justify-end w-full">
+        <div className="flex absolute top-8 right-8 hidden sm:block">
           <div className="">
             <button
               key={content.switchPath}

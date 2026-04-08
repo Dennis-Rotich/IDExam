@@ -1,26 +1,46 @@
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useAuth } from "../../context/AuthContext";
+import { getExamApi } from "../../api/exam";
 
-export function ExamAuth({ content }: { content: any }) {
+export function ExamAuth() {
+  const content = useOutletContext<any>();
   const { logIn, isLoading } = useAuth();
   const navigate = useNavigate();
 
+  // Controlled inputs
+  const [identifier, setIdentifier] = useState("");
+  const [examCode, setExamCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsVerifying(true);
+
     try {
-      await logIn("student");
+      // 1. Authenticate the student using standard credentials
+      await logIn({ identifier, password });
+
+      // 2. Verify the Exam Code actually exists and is active
+      const examRes = await getExamApi(examCode);
+
       toast.success("Identity verified. Launching environment.");
-      navigate("/exam/5322mm-demoid-kl5566");
-    } catch (error) {
+      navigate(`/exam/${examRes.exam._id}`);
+    } catch (error: any) {
       console.error("Authentication error:", error);
-      toast.error("Invalid credentials or exam code.");
+      toast.error(error.response?.data?.message || "Invalid credentials or inactive exam code.");
+    } finally {
+      setIsVerifying(false);
     }
   };
+
+  const isBusy = isLoading || isVerifying;
 
   return (
     <div className="w-full space-y-8 flex flex-col items-center">
@@ -42,7 +62,7 @@ export function ExamAuth({ content }: { content: any }) {
 
       <form
         onSubmit={handleSubmit}
-        className="w-[420px] text-left text-black space-y-6 border border-slate-200 p-6 rounded-xl shadow-sm bg-white h-[400px]"
+        className="w-full max-w-[420px] text-left text-black space-y-6 border border-slate-200 p-6 rounded-xl shadow-sm bg-white"
       >
         <div className="space-y-2">
           <Label htmlFor="identity" className="text-slate-700">
@@ -51,6 +71,8 @@ export function ExamAuth({ content }: { content: any }) {
           <Input
             id="identity"
             type="text"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             placeholder="student@university.edu"
             required
             className="bg-slate-50 border-slate-200 focus-visible:ring-[#00a3a3]"
@@ -64,7 +86,9 @@ export function ExamAuth({ content }: { content: any }) {
           <Input
             id="exam-code"
             type="text"
-            placeholder="CS-DSA-201"
+            value={examCode}
+            onChange={(e) => setExamCode(e.target.value)}
+            placeholder="e.g. 64f1a2b3c4d5" // Suggesting MongoDB ObjectId format
             required
             className="bg-slate-50 border-slate-200 focus-visible:ring-[#00a3a3]"
           />
@@ -72,12 +96,14 @@ export function ExamAuth({ content }: { content: any }) {
 
         <div className="space-y-2">
           <Label htmlFor="session-password" className="text-slate-700">
-            Session Password
+            Account Password
           </Label>
           <Input
             id="session-password"
             type="password"
-            placeholder="Provided by your proctor"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Your portal password"
             required
             className="bg-slate-50 border-slate-200 focus-visible:ring-[#00a3a3]"
           />
@@ -85,10 +111,10 @@ export function ExamAuth({ content }: { content: any }) {
 
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={isBusy}
           className="w-full bg-[#00a3a3] hover:bg-[#008a8a] text-white shadow-sm h-11 mt-4"
         >
-          {isLoading ? (
+          {isBusy ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             "Launch Exam"
@@ -104,16 +130,6 @@ export function ExamAuth({ content }: { content: any }) {
         >
           Contact Proctor
         </a>
-      </div>
-
-      <div className="flex flex-col gap-2 items-start w-full">
-        <button
-          id={content?.id}
-          className="p-2 w-[180px] rounded-[5px] text-slate-500 hover:bg-slate-300 hover:text-slate-900"
-          onClick={() => {navigate(content?.switchPath || "/")}}
-        >
-          {content?.switchText || "Return"}
-        </button>
       </div>
     </div>
   );

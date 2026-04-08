@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -7,37 +7,41 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useAuth } from "../../context/AuthContext";
 
-export function InstructorAuth({ content }: { content: any }) {
+export function InstructorAuth() {
+  const content = useOutletContext<any>();
   const { signUp, logIn, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       if (isLogin) {
-        await logIn("instructor");
-        toast.success("Instructor login successful!");
+        await logIn({ identifier: email, password });
+        toast.success("Welcome back!");
+        navigate("/instructor");
       } else {
-        if (signUp) {
-          await signUp("instructor");
-          toast.success("Instructor account created!");
-        } else {
-          await logIn("instructor");
-          toast.success("Logged in successfully!");
-        }
+        await signUp({
+          name,
+          email,
+          password,
+          role: "instructor",
+        });
+        toast.success("Account created successfully! Please log in.");
+        setIsLogin(true); // Flip to login view after successful registration
       }
-
-      navigate("/instructor");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Authentication error:", error);
-      toast.error("Authentication failed. Please check your credentials.");
+      toast.error(error.response?.data?.message || "Authentication failed.");
     }
   };
 
   return (
-    <div className="w-full max-w-[400px] space-y-8">
+    <div className="w-full max-w-[400px] space-y-8 min-h-screen">
       {/* Mobile Header (Hidden on Desktop) */}
       <div className="flex lg:hidden items-center gap-2 mb-8">
         <span className="text-xl font-bold tracking-tighter text-slate-900">
@@ -68,7 +72,9 @@ export function InstructorAuth({ content }: { content: any }) {
             <Label htmlFor="name" className="text-slate-700">Full Name</Label>
             <Input
               id="name"
-              placeholder="Isaiah Juma"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
               className="bg-slate-50 border-slate-200 placeholder:text-slate-400 focus-visible:ring-[#00a3a3]"
             />
@@ -80,7 +86,8 @@ export function InstructorAuth({ content }: { content: any }) {
           <Input
             id="email"
             type="email"
-            placeholder="faculty@university.edu"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             className="bg-slate-50 border-slate-200 placeholder:text-slate-400 focus-visible:ring-[#00a3a3]"
           />
@@ -101,6 +108,8 @@ export function InstructorAuth({ content }: { content: any }) {
           <Input
             id="password"
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
             className="bg-slate-50 border-slate-200 placeholder:text-slate-400 focus-visible:ring-[#00a3a3]"
           />
@@ -133,15 +142,15 @@ export function InstructorAuth({ content }: { content: any }) {
         </button>
       </div>
 
-      <div className="absolute top-8 right-8 hidden sm:block">
+      <div className="flex absolute top-8 right-8 hidden sm:block">
         <button
           id={content?.id}
           className="p-2 rounded-[5px] text-slate-500 hover:bg-slate-300 hover:text-slate-900"
           onClick={() => navigate(content?.switchPath || "/")}
         >
-          {content?.switchText || "Switch Portal"}
+          {content?.switchText}
         </button>
-      </div>
+      </div>  
     </div>
   );
 }

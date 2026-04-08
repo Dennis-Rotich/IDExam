@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -7,37 +7,43 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useAuth } from "../../context/AuthContext";
 
-export function AdminAuth({ content }: { content: any }) {
+export function AdminAuth() {
+  const content = useOutletContext<any>();
+
   const { signUp, logIn, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       if (isLogin) {
-        await logIn("admin");
-        toast.success("Admin login successful!");
+        // Backend login uses "identifier" which accepts email or studentId
+        await logIn({ identifier: email, password });
+        toast.success("Welcome back!");
+        navigate("/admin");
       } else {
-        if (signUp) {
-          await signUp("admin");
-          toast.success("Admin account created!");
-        } else {
-          await logIn("admin");
-          toast.success("Logged in successfully!");
-        }
+        await signUp({
+          name,
+          email,
+          password,
+          role: "admin",
+        });
+        toast.success("Account created successfully! Please log in.");
+        setIsLogin(true); // Flip to login view after successful registration
       }
-
-      navigate("/admin");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Authentication error:", error);
-      toast.error("Authentication failed. Please check your credentials.");
+      toast.error(error.response?.data?.message || "Authentication failed.");
     }
   };
 
   return (
-    <div className="w-full max-w-[400px] space-y-8">
+    <div className="w-full max-w-[400px] space-y-8 min-h-screen">
       {/* Mobile Header (Hidden on Desktop) */}
       <div className="flex lg:hidden items-center gap-2 mb-8">
         <span className="text-xl font-bold tracking-tighter text-slate-900">
@@ -50,11 +56,12 @@ export function AdminAuth({ content }: { content: any }) {
 
       <div className="space-y-2 text-center lg:text-left">
         <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-          {isLogin ? (content?.roleBadge || "Admin Login") : "Create an account"}
+          {isLogin ? content?.roleBadge || "Admin Login" : "Create an account"}
         </h2>
         <p className="text-slate-500 text-sm">
           {isLogin
-            ? (content?.tagline || "Platform oversight and system administration.")
+            ? content?.tagline ||
+              "Platform oversight and system administration."
             : "Register to manage the platform and oversee system operations."}
         </p>
       </div>
@@ -65,10 +72,14 @@ export function AdminAuth({ content }: { content: any }) {
       >
         {!isLogin && (
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-700">Full Name</Label>
+            <Label htmlFor="name" className="text-slate-700">
+              Full Name
+            </Label>
             <Input
               id="name"
-              placeholder="System Administrator"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
               className="bg-slate-50 border-slate-200 placeholder:text-slate-400 focus-visible:ring-[#00a3a3]"
             />
@@ -76,11 +87,14 @@ export function AdminAuth({ content }: { content: any }) {
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-slate-700">Admin Email</Label>
+          <Label htmlFor="email" className="text-slate-700">
+            Admin Email
+          </Label>
           <Input
             id="email"
             type="email"
-            placeholder="admin@university.edu"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             className="bg-slate-50 border-slate-200 placeholder:text-slate-400 focus-visible:ring-[#00a3a3]"
           />
@@ -88,7 +102,9 @@ export function AdminAuth({ content }: { content: any }) {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-slate-700">Password</Label>
+            <Label htmlFor="password" className="text-slate-700">
+              Password
+            </Label>
             {isLogin && (
               <a
                 href="#"
@@ -101,6 +117,8 @@ export function AdminAuth({ content }: { content: any }) {
           <Input
             id="password"
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
             className="bg-slate-50 border-slate-200 placeholder:text-slate-400 focus-visible:ring-[#00a3a3]"
           />
@@ -136,10 +154,10 @@ export function AdminAuth({ content }: { content: any }) {
       <div className="absolute top-8 right-8 hidden sm:block">
         <button
           id={content?.id}
-          className="p-2 rounded-[5px] text-slate-500 hover:bg-slate-300 hover:text-slate-900 transition-colors text-sm font-medium"
-          onClick={() => navigate(content?.switchPath || "/auth/instructor")}
+          className="p-2 rounded-[5px] text-slate-500 hover:bg-slate-300 hover:text-slate-900"
+          onClick={() => navigate(content?.switchPath || "/")}
         >
-          {content?.switchText || "Instructor Portal"}
+          {content?.switchText || "Student Portal"}
         </button>
       </div>
     </div>
