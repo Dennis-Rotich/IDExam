@@ -42,7 +42,7 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { type UserRole } from "../components/ProfileUser";
+import { type UserRole } from "../config/routes";
 import { useAuth } from "../context/AuthContext";
 
 // ─── Shared: Save footer ─────────────────────────────────────────────────────

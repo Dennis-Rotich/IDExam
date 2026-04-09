@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertTriangle, Info, ShieldAlert, ChevronDown, ChevronUp, Clock, BarChart2, Activity, Bell } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { socket } from "../../lib/socket";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "../../components/ui/dialog";
@@ -10,6 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
 
+// --- MVP MOCK DATA ---
 const QUESTION_PERFORMANCE = [
   { id: "Q1", topic: "Big-O notation", type: "MCQ", score: 88 },
   { id: "Q2", topic: "Binary search trees", type: "Code", score: 61 },
@@ -18,7 +20,7 @@ const QUESTION_PERFORMANCE = [
   { id: "Q5", topic: "Graph traversal", type: "Code", score: 44 },
 ];
 
-const ALERTS = [
+const INITIAL_ALERTS = [
   { id: 1, type: "warning", message: "Jaylen Brooks — tab switch detected (3×)", time: "2:31 PM" },
   { id: 2, type: "critical", message: "Priya Nair — extension request pending", time: "2:44 PM" },
   { id: 3, type: "info", message: "2 students have not yet opened the exam", time: "2:00 PM" },
@@ -36,6 +38,7 @@ const HISTOGRAM_DATA = [
   { label: "90+", count: 4, color: "bg-emerald-500/60", height: "h-12" },
 ];
 
+// --- HELPER FUNCTIONS ---
 const getScoreColor = (score: number) => {
   if (score >= 75) return "text-emerald-500";
   if (score >= 50) return "text-amber-500";
@@ -67,14 +70,63 @@ const getAlertIcon = (type: string) => {
 };
 
 export function LiveProctoring() {
+  // --- REAL-TIME SOCKET STATE ---
+  const [activeStudents, setActiveStudents] = useState<Set<string>>(new Set());
+  const [liveAlerts, setLiveAlerts] = useState(INITIAL_ALERTS);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    socket.connect();
+    
+    socket.on("connect", () => {
+      setIsConnected(true);
+      socket.emit("join_exam", "teacher");
+    });
+
+    socket.on("disconnect", () => setIsConnected(false));
+
+    socket.on("student_joined", (studentId: string) => {
+      setActiveStudents(prev => new Set(prev).add(studentId));
+    });
+
+    socket.on("student_left", (studentId: string) => {
+      setActiveStudents(prev => {
+        const next = new Set(prev);
+        next.delete(studentId);
+        return next;
+      });
+    });
+
+    // Automatically flag runtime errors as warnings in the alert feed
+    socket.on("student_execution_result", (data: { studentId: string; language: string; isError: boolean }) => {
+      if (data.isError) {
+        const newAlert = {
+          id: Date.now(),
+          type: "warning",
+          message: `Student ${data.studentId.substring(0, 5)}... — runtime error in ${data.language}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setLiveAlerts(prev => [newAlert, ...prev]);
+      }
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("student_joined");
+      socket.off("student_left");
+      socket.off("student_execution_result");
+      socket.disconnect();
+    };
+  }, []);
+
+  // --- UI STATE ---
   const [isAlertsExpanded, setIsAlertsExpanded] = useState(false);
-  const displayedAlerts = isAlertsExpanded ? ALERTS : ALERTS.slice(0, 5);
+  const displayedAlerts = isAlertsExpanded ? liveAlerts : liveAlerts.slice(0, 5);
   
-  // Interactive States
   const [addedMinutes, setAddedMinutes] = useState(0);
   const [isExamEnded, setIsExamEnded] = useState(false);
   
-  // Modal Controls
   const [isAddTimerOpen, setIsAddTimerOpen] = useState(false);
   const [isEndExamOpen, setIsEndExamOpen] = useState(false);
   const [timeToAdd, setTimeToAdd] = useState("15");
@@ -91,6 +143,9 @@ export function LiveProctoring() {
     setIsEndExamOpen(false);
   };
 
+  // Use MVP number (87) if no socket connections yet, otherwise show real count
+  const displayStudentCount = activeStudents.size > 0 ? activeStudents.size : 87;
+
   return (
     <div className="mx-auto space-y-6 pb-12 text-foreground text-left px-2">
       
@@ -100,7 +155,10 @@ export function LiveProctoring() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Activity className="h-7 w-7" /> Live Proctoring
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">CS201 Midterm Examination • 87 Students Active</p>
+          <p className="text-muted-foreground mt-1 text-sm flex items-center gap-2">
+            CS201 Midterm Examination • {displayStudentCount} Students Active
+            {isConnected && <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-2" title="Socket Connected" />}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button 
@@ -206,10 +264,10 @@ export function LiveProctoring() {
         <div className="border border-border rounded-lg bg-card/30 overflow-hidden flex flex-col">
           <div className="py-2.5 px-4 border-b border-border bg-muted/10 text-xs font-semibold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
             <span className="flex items-center gap-2"><Bell className="w-3.5 h-3.5" /> Flags & Alerts</span>
-            <span className="bg-destructive/10 text-red-500 px-2 py-0.5 rounded-full">{ALERTS.length} New</span>
+            <span className="bg-destructive/10 text-red-500 px-2 py-0.5 rounded-full">{liveAlerts.length} New</span>
           </div>
           
-          <div className="p-2 space-y-2 flex-1 overflow-y-auto">
+          <div className="p-2 space-y-2 flex-1 overflow-y-auto max-h-[350px]">
             {displayedAlerts.map((alert) => (
               <div key={alert.id} className={`flex items-start justify-between p-3 rounded-md border ${getAlertStyle(alert.type)} bg-background/50`}>
                 <div className="flex gap-3 min-w-0">
@@ -220,9 +278,9 @@ export function LiveProctoring() {
               </div>
             ))}
             
-            {ALERTS.length > 5 && !isAlertsExpanded && (
+            {liveAlerts.length > 5 && !isAlertsExpanded && (
               <Button variant="ghost" className="w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md" onClick={() => setIsAlertsExpanded(true)}>
-                View {ALERTS.length - 5} more alerts <ChevronDown className="w-3 h-3 ml-1" />
+                View {liveAlerts.length - 5} more alerts <ChevronDown className="w-3 h-3 ml-1" />
               </Button>
             )}
             {isAlertsExpanded && (
