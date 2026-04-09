@@ -5,6 +5,7 @@ import { SidebarProvider } from "./ui/sidebar";
 import { AppSidebar } from "./Layout/AppSidebar";
 import { ProfileDropdown } from "./ProfileUser";
 import { useAuth } from "../context/AuthContext";
+import { Loader2 } from "lucide-react";
 
 export function DashboardLayout() {
   const { user, isLoading: authLoading, logOut } = useAuth();
@@ -39,7 +40,6 @@ export function DashboardLayout() {
         : "Student Portal";
 
   const handleLogOut = async () => {
-    // Capture the role before logging out, as user will become null
     const currentRole = user.role;
     await logOut();
     navigate(`/auth/${currentRole}`);

@@ -27,7 +27,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "../ui/sidebar";
-import { resolvePathsByRole, type UserRole } from "../ProfileUser";
+import { resolvePathsByRole, type UserRole } from "../../config/routes";
 import { useRole } from "../../context/AuthContext"; // Adjust import path as needed
 
 interface NavItem {
@@ -60,7 +60,7 @@ const ADMIN_NAV: NavItem[] = [
   { title: "Settings",       icon: Settings,        url: "/admin/settings" },
 ];
 
-  // Note: Ensure UserRole in ProfileUser includes "admin" if you keep this mapping
+
 const ROLE_META: Record<UserRole | "admin", { label: string }> = {
   instructor: { label: "Instructor Panel" },
   student:    { label: "Student Portal" },
