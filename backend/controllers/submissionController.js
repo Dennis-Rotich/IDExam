@@ -1,5 +1,6 @@
 import submissionModel from "../models/submissionModel.js";
 import examModel from "../models/examModel.js";
+
 import axios from "axios";
 
 // to handle frequent API saves
@@ -116,7 +117,7 @@ const studentSubmit = async (req, res) => {
       const runOutput = data.run ? data.run.output : "";
 
       const exitCode = data.run ? data.run.code : 1;
-      
+
       const actualOutputClean = runOutput.trim();
       const expectedOutputClean = testCase.expectedOutput.trim();
 
@@ -264,39 +265,89 @@ const runCode = async (req, res) => {
   }
 };
 
-// 
+//
 const getSubmission = async (req, res) => {
-    try {
-        const { sessionId } = req.params;
-        let submission = await submissionModel.findOne({ sessionId });
+  try {
+    const { sessionId } = req.params;
+    let submission = await submissionModel.findOne({ sessionId });
 
-        if (!submission) {
-            return res.status(404).json({ success: false, message: "Submission not found" });
-        }
-
-        // LAZY EVALUATION: If the exam is marked IN_PROGRESS but the time has passed
-        if (submission.status === 'IN_PROGRESS' && new Date() > submission.endsAt) {
-            
-            // Force it to be completed
-            submission = await submissionModel.findOneAndUpdate(
-                { sessionId },
-                { 
-                    $set: { 
-                        status: 'COMPLETED', 
-                        submittedAt: submission.endsAt // They "submitted" exactly when time ran out
-                    } 
-                },
-                { new: true }
-            );
-            
-            // Note: You would trigger your auto-grader function here asynchronously
-        }
-
-        res.status(200).json({ success: true, submission });
-
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Server error" });
+    if (!submission) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Submission not found" });
     }
+
+    // LAZY EVALUATION: If the exam is marked IN_PROGRESS but the time has passed
+    if (submission.status === "IN_PROGRESS" && new Date() > submission.endsAt) {
+      // Force it to be completed
+      submission = await submissionModel.findOneAndUpdate(
+        { sessionId },
+        {
+          $set: {
+            status: "COMPLETED",
+            submittedAt: submission.endsAt, // They "submitted" exactly when time ran out
+          },
+        },
+        { new: true },
+      );
+
+      // Note: You would trigger your auto-grader function here asynchronously
+    }
+
+    res.status(200).json({ success: true, submission });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error });
+  }
 };
 
-export { studentSubmit, runCode, autosave, getSubmission };
+const getStudentSubmissions = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    // pagination for proper loading and efficiency
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [submissions, totalSubmissions] = await Promise.all([
+      submissionModel
+        .find({ student: studentId })
+        .populate("exam", "title subject duration")
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      submissionModel.countDocuments({ student: studentId }),
+    ]);
+
+    const totalPages = Math.ceil(totalSubmissions / limit);
+
+    res.status(200).json({
+      success: true,
+      data: submissions,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalSubmissions,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Get Student Submissions Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export {
+  studentSubmit,
+  runCode,
+  autosave,
+  getSubmission,
+  getStudentSubmissions,
+};

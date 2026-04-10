@@ -7,6 +7,7 @@ import connectDB from './config/mongodb.js';
 import examRouter from './routes/examRoute.js';
 import submissionRouter from './routes/submissionRoute.js';
 import userRouter from './routes/userRoute.js';
+import practiceRouter from './routes/practiceRoute.js';
 
 // app config
 const app = express();
@@ -27,7 +28,6 @@ app.use(cors());
 
 // ==========================================
 // GLOBAL API ROUTER
-// ==========================================
 const apiRouter = express.Router();
 
 // Health Check: http://localhost:4000/api
@@ -39,6 +39,7 @@ apiRouter.get('/', (req, res) => {
 apiRouter.use('/exam', examRouter);
 apiRouter.use('/submission', submissionRouter);
 apiRouter.use('/user', userRouter);
+apiRouter.use('/practice', practiceRouter);
 
 // Mount the global router
 app.use('/api', apiRouter);
@@ -62,7 +63,6 @@ function updateView(studentId, newText) {
 }
 
 io.on('connection', (socket) => {
-    
     socket.on('join_exam', (role) => {
         if (role === 'teacher') {
             socket.join(`${EXAM_ID}_dashboard`);
