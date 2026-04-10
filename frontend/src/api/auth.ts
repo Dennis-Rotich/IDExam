@@ -21,23 +21,12 @@ export const registerUserApi = async (userData: RegisterUserRequest): Promise<Ba
     }
 };
 
-export const loginUserApi = async (
-    userData: LoginUserRequest, 
-    loginContext: (user: User, token: string) => void
-): Promise<AuthResponse> => {
+export const loginUserApi = async (userData: LoginUserRequest): Promise<AuthResponse> => {
     try {
         const response = await apiClient.post<AuthResponse>("/user/login", userData);
-        
-        // TypeScript now knows response.data contains 'token' and 'user' of type User
-        const { token, user } = response.data;
-        
-        loginContext(user, token);
-        apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-        console.log("Logged in successfully: ", user);
-
         return response.data;
     } catch (error) {
-        console.error("Log in error:", error);
+        console.error("Login API error:", error);
         throw error;
     }
 };

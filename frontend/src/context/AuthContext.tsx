@@ -88,7 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function logIn(data: LoginUserRequest) {
     setIsLoading(true);
     try {
-      await loginUserApi(data, setAuthData);
+      // 1. Await the API call and capture the returned payload
+      const response = await loginUserApi(data);
+      
+      setAuthData(response.user, response.token); 
+      
+    } catch (error) {
+       console.error("Login Context Error:", error);
+       throw error; // Re-throw so the UI component can catch it and show an error toast
     } finally {
       setIsLoading(false);
     }

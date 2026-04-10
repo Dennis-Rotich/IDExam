@@ -25,7 +25,7 @@ export function StudentAuth() {
     try {
       if (isLogin) {
         // Backend login uses "identifier" which accepts email or studentId
-        await logIn({ identifier: email, password });
+        await logIn({identifier: email, password} );
         toast.success("Welcome back!");
         navigate("/student");
       } else {
@@ -40,7 +40,7 @@ export function StudentAuth() {
         setIsLogin(true); // Flip to login view after successful registration
       }
     } catch (error: any) {
-      console.error("Authentication error:", error);
+      console.error("Authentication error:", error.response);
       toast.error(error.response?.data?.message || "Authentication failed.");
     }
   };
