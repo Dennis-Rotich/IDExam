@@ -1,6 +1,7 @@
-// api/exam.ts
 import { apiClient } from "../lib/axiosApi";
 import { type Exam, type ExamResponse, type ExamsListResponse } from "../types/exam";
+import { type BrowseTest } from "../types/exam";
+
 
 // CREATE
 export const createExamApi = async (examData: Partial<Exam>): Promise<{success: boolean; message: string; examId: string}> => {
@@ -20,6 +21,16 @@ export const getExamApi = async (examId: string): Promise<ExamResponse> => {
         return response.data;
     } catch (error) {
         console.error("Get Exam API error:", error);
+        throw error;
+    }
+};
+
+export const getAssignedExamsApi = async (): Promise<BrowseTest[]> => {
+    try {
+        const response = await apiClient.get("/exam/student/assigned");
+        return response.data.data;
+    } catch (error) {
+        console.error("Fetch Assigned Exams error:", error);
         throw error;
     }
 };

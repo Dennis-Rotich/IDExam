@@ -5,7 +5,7 @@ export type UserRole = "student" | "instructor" | "admin";
 
 // 2. The Core User Object (Matches the payload returned by login and getUserProfile)
 export interface User {
-    id: string; // Mapped from backend _id
+    id: string; 
     name: string;
     email: string;
     role: UserRole;

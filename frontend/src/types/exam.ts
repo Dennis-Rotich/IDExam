@@ -1,4 +1,4 @@
-// types/exam.ts
+import { type SubmissionResponse } from "./submission";
 
 export interface TestCase {
     _id?: string;
@@ -6,6 +6,25 @@ export interface TestCase {
     expectedOutput?: string; // Stripped by backend for students
     isHidden?: boolean;
     points?: number;
+}
+
+// We expand the interface slightly to accommodate the Feedback Modal
+export type TestAvailability = "available" | "completed" | "upcoming" | "locked";
+
+export interface BrowseTest { 
+    id: string; // The Exam ID
+    submission?: SubmissionResponse | any;
+    title: string; 
+    subject: string; 
+    instructorName: string; 
+    availability: TestAvailability; 
+    questionCount: number; 
+    durationMinutes: number; 
+    availableFrom: string; 
+    dueDate: string; 
+    score?: number; 
+    inProgress?: boolean;
+    instructorFeedback?: string; // Added for the Feedback Modal
 }
 
 export interface ExamProblem {

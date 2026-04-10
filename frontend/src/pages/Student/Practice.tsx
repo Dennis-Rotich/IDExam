@@ -1,26 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
   Check, CalendarDays, Search, ArrowUpDown, ListFilter, 
   Circle, Shuffle, MonitorPlay, Lock, Database, Code2, 
-  TerminalSquare, GitMerge, FileJson2, LayoutGrid, ChevronDown
+  TerminalSquare, GitMerge, FileJson2, LayoutGrid, ChevronDown,
+  Loader2, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
+import { getDifficultyColor } from "../../utils/string";
+import { getPracticeQuestionsApi, type PracticeQuestion } from "../../api/practice";
 
-// --- MOCK DATA ---
-const TAGS = [
-  { name: "Array", count: 2133 },
-  { name: "String", count: 864 },
-  { name: "Hash Table", count: 805 },
-  { name: "Math", count: 663 },
-  { name: "Dynamic Programming", count: 648 },
-  { name: "Sorting", count: 510 },
-  { name: "Greedy", count: 457 },
-  { name: "Depth-First Search", count: 289 },
-];
-
-// Added specific icon colors matching the uploaded image
 const CATEGORIES = [
   { name: "All Topics", icon: LayoutGrid, color: "text-foreground" },
   { name: "Algorithms", icon: GitMerge, color: "text-emerald-500" },
@@ -30,40 +20,74 @@ const CATEGORIES = [
   { name: "JavaScript", icon: FileJson2, color: "text-yellow-500" },
 ];
 
-const PROBLEMS = [
-  { id: 2946, title: "Matrix Similarity After Cyclic Shifts", acceptance: "73.7%", difficulty: "Easy", status: "calendar" },
-  { id: 1, title: "Two Sum", acceptance: "57.2%", difficulty: "Easy", status: "solved" },
-  { id: 2, title: "Add Two Numbers", acceptance: "48.2%", difficulty: "Med.", status: "solved" },
-  { id: 3, title: "Longest Substring Without Repeating Characters", acceptance: "38.7%", difficulty: "Med.", status: "none" },
-  { id: 4, title: "Median of Two Sorted Arrays", acceptance: "46.2%", difficulty: "Hard", status: "none" },
-  { id: 5, title: "Longest Palindromic Substring", acceptance: "37.5%", difficulty: "Med.", status: "none" },
-  { id: 6, title: "Zigzag Conversion", acceptance: "53.8%", difficulty: "Med.", status: "none" },
-  { id: 7, title: "Reverse Integer", acceptance: "31.7%", difficulty: "Med.", status: "none" },
-  { id: 8, title: "String to Integer (atoi)", acceptance: "20.7%", difficulty: "Med.", status: "none" },
-  { id: 9, title: "Palindrome Number", acceptance: "60.4%", difficulty: "Easy", status: "solved" },
-  { id: 10, title: "Regular Expression Matching", acceptance: "30.6%", difficulty: "Hard", status: "none" },
-  { id: 11, title: "Container With Most Water", acceptance: "59.7%", difficulty: "Med.", status: "none" },
-  { id: 12, title: "Integer to Roman", acceptance: "70.7%", difficulty: "Med.", status: "none" },
-];
-
-// --- HELPER FUNCTIONS ---
-function getDifficultyColor(diff: string) {
-  if (diff === "Easy") return "text-teal-500";
-  if (diff === "Med.") return "text-amber-500";
-  if (diff === "Hard.") return "text-red-500";
-  return "text-destructive";
-}
-
 function getStatusIcon(status: string) {
   if (status === "solved") return <Check className="w-4 h-4 text-emerald-500" />;
   if (status === "calendar") return <CalendarDays className="w-4 h-4 text-blue-500" />;
-  return <div className="w-4 h-4" />; // Empty placeholder for perfect alignment
+  return <div className="w-4 h-4" />; 
 }
 
 export function StudentPractice() {
-  // Interactive States
+  const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Server-Side Filter States
   const [activeCategory, setActiveCategory] = useState("All Topics");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Pagination States
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalQuestions, setTotalQuestions] = useState(0);
+  const [totalSolved, setTotalSolved] = useState(0);
+
+  // Note: For a true scalable app, dynamicTags should also be fetched from a separate aggregate endpoint.
+  // We use a static mock here to preserve the UI layout until you build the backend aggregation route.
+  const dynamicTags = [
+    { name: "Array", count: 2133 }, { name: "String", count: 864 }, { name: "Hash Table", count: 805 }
+  ];
+
+  useEffect(() => {
+    // Reset to page 1 whenever a filter changes
+    setPage(1);
+  }, [searchQuery, activeCategory, activeTag]);
+
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        setIsLoading(true);
+        
+        const response = await getPracticeQuestionsApi({
+          page,
+          limit: 20,
+          search: searchQuery,
+          category: activeCategory === "All Topics" ? undefined : activeCategory,
+          tag: activeTag
+        });
+
+        // Map the paginated backend response
+        setQuestions(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+        setTotalQuestions(response.pagination?.totalItems || 0);
+        
+        // This requires the backend to send the overall solved count in the payload
+        if (response.meta?.totalSolved !== undefined) {
+          setTotalSolved(response.meta.totalSolved);
+        }
+      } catch (error) {
+        console.error("Failed to load practice questions", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    // Debounce the search input slightly to prevent spamming the API
+    const delayDebounceFn = setTimeout(() => {
+      loadQuestions();
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [page, searchQuery, activeCategory, activeTag]);
 
   return (
     <div className="mx-auto space-y-6 pb-12 text-left text-foreground px-2">
@@ -71,7 +95,7 @@ export function StudentPractice() {
       {/* 1. TAGS ROW */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide mask-fade-right w-full pr-4">
-          {TAGS.map((tag) => (
+          {dynamicTags.map((tag) => (
             <button 
               key={tag.name} 
               onClick={() => setActiveTag(activeTag === tag.name ? null : tag.name)}
@@ -100,7 +124,10 @@ export function StudentPractice() {
           return (
             <Button 
               key={cat.name}
-              onClick={() => setActiveCategory(cat.name)}
+              onClick={() => {
+                setActiveCategory(cat.name);
+                setActiveTag(null);
+              }}
               variant={isActive ? "default" : "secondary"}
               className={`rounded-full h-9 px-4 shrink-0 text-sm font-medium transition-colors ${
                 isActive 
@@ -108,7 +135,6 @@ export function StudentPractice() {
                   : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent hover:border-border"
               }`}
             >
-              {/* If active, the icon inherits the inverted text color. If inactive, it uses its assigned brand color. */}
               <cat.icon className={`w-4 h-4 mr-2 ${isActive ? "text-background" : cat.color}`} />
               {cat.name}
             </Button>
@@ -123,6 +149,8 @@ export function StudentPractice() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search questions" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-muted/30 border-transparent focus-visible:ring-1 focus-visible:ring-border h-9 text-sm rounded-full" 
             />
           </div>
@@ -137,7 +165,7 @@ export function StudentPractice() {
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Circle className="w-4 h-4 text-emerald-500/50" />
-            <span>23 / 3879 Solved</span>
+            <span>{totalSolved} / {totalQuestions} Solved</span>
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full">
             <Shuffle className="w-4 h-4" />
@@ -147,8 +175,6 @@ export function StudentPractice() {
 
       {/* 4. PROBLEM LIST WITH HEADER */}
       <div className="w-full text-sm">
-        
-        {/* Table Header */}
         <div className="flex items-center justify-between py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           <div className="flex justify-between gap-1">
             <div className="">Status</div>
@@ -161,40 +187,74 @@ export function StudentPractice() {
           </div>
         </div>
 
-        {/* Table Body */}
-        {PROBLEMS.map((prob, idx) => (
-          <Link 
-            to={`/practice/${prob.id}`} // Makes the entire row a clickable route
-            key={prob.id} 
-            className={`flex items-center justify-between py-3 px-4 transition-colors cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-border ${
-              idx % 2 === 0 ? "bg-muted/10" : "bg-transparent"
-            } hover:bg-muted/40 active:bg-muted/60`}
-          >
-            {/* Left Side: Status & Title */}
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="w-5 shrink-0 flex justify-center">
-                {getStatusIcon(prob.status)}
+        {isLoading ? (
+          <div className="flex py-12 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : questions.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground border border-dashed border-border rounded-lg mt-4">
+            No questions match your current filters.
+          </div>
+        ) : (
+          questions.map((prob, idx) => (
+            <Link 
+              to={`/practice/${prob._id}`} 
+              key={prob._id} 
+              className={`flex items-center justify-between py-3 px-4 transition-colors cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-border ${
+                idx % 2 === 0 ? "bg-muted/10" : "bg-transparent"
+              } hover:bg-muted/40 active:bg-muted/60`}
+            >
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-5 shrink-0 flex justify-center">
+                  {getStatusIcon(prob.status)}
+                </div>
+                <div className="flex items-center gap-2 truncate text-foreground hover:text-blue-500 transition-colors">
+                  <span className="font-medium opacity-80">{prob.questionId}.</span>
+                  <span className="truncate font-medium">{prob.title}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 truncate text-foreground hover:text-blue-500 transition-colors">
-                <span className="font-medium opacity-80">{prob.id}.</span>
-                <span className="truncate font-medium">{prob.title}</span>
-              </div>
-            </div>
 
-            {/* Right Side: Stats & Icons */}
-            <div className="flex items-center gap-6 shrink-0 pl-4">
-              <span className="text-muted-foreground w-16 text-right font-mono text-xs">{prob.acceptance}</span>
-              <span className={`w-16 text-left font-medium ${getDifficultyColor(prob.difficulty)}`}>
-                {prob.difficulty}
-              </span>
-              <div className="flex items-center gap-2 w-10 justify-end text-muted-foreground">
-                <MonitorPlay className="w-4 h-4 opacity-0 hover:opacity-100 transition-opacity" />
-                <Lock className="w-3.5 h-3.5 opacity-40" />
+              <div className="flex items-center gap-6 shrink-0 pl-4">
+                <span className="text-muted-foreground w-16 text-right font-mono text-xs">
+                  {prob.acceptanceRate}%
+                </span>
+                <span className={`w-16 text-left font-medium ${getDifficultyColor(prob.difficulty)}`}>
+                  {prob.difficulty}
+                </span>
+                <div className="flex items-center gap-2 w-10 justify-end text-muted-foreground">
+                  <MonitorPlay className="w-4 h-4 opacity-0 hover:opacity-100 transition-opacity" />
+                  <Lock className="w-3.5 h-3.5 opacity-40" />
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))
+        )}
       </div>
+
+      {/* 5. PAGINATION CONTROLS */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex items-center justify-between pt-6 border-t border-border mt-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" /> Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            Next <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      )}
 
     </div>
   );
