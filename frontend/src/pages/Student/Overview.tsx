@@ -1,55 +1,20 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
-  AlertTriangle,
   Clock,
   Play,
   FileText,
   ChevronRight,
-  Bell,
+  Loader2
 } from "lucide-react";
+import { scoreColor } from "../../utils/string";
 import { Button } from "../../components/ui/button";
-// --- MOCK DATA (Personalized & Contextual) ---
-const URGENT_ITEMS = [
-  {
-    id: "u1",
-    type: "deadline",
-    title: "CS301: Advanced Programming Midterm",
-    detail: "Due in 14 hours",
-    action: "Start Exam",
-    link: "/exam/cs301-mid",
-    iconColor: "text-destructive",
-    icon: AlertTriangle,
-  },
-  {
-    id: "u2",
-    type: "in-progress",
-    title: "MTH210: Discrete Math Quiz 3",
-    detail: "In Progress (Paused)",
-    action: "Resume",
-    link: "/exam/mth210-q3",
-    iconColor: "text-blue-500",
-    icon: Clock,
-  },
-  {
-    id: "u3",
-    type: "feedback",
-    title: "CS201: Data Structures",
-    detail: "New instructor feedback available",
-    action: "View",
-    link: "/student/results/cs201-mid",
-    iconColor: "text-emerald-500",
-    icon: Bell,
-  },
-];
+import { useAuth } from "../../context/AuthContext";
+import { getStudentSubmissionsApi } from "../../api/submission";
+// Adjust import path to match your types location
+import { type SubmissionResponse } from "../../types/submission";
 
-const STATS = {
-  avgScore: 84,
-  completed: 12,
-  totalAssigned: 15,
-  upcoming: 3,
-  passRate: 92,
-};
-
+// --- MOCK DATA (Requires an /exam endpoint, NOT a /submission endpoint) ---
 const UPCOMING_TESTS = [
   {
     id: "t1",
@@ -69,63 +34,93 @@ const UPCOMING_TESTS = [
     duration: "60m",
     open: true,
   },
-  {
-    id: "t3",
-    title: "Linear Algebra Final",
-    subject: "MTH210",
-    instructor: "Dr. Chen",
-    daysAway: 14,
-    duration: "120m",
-    open: false,
-  },
 ];
-
-const RECENT_RESULTS = [
-  {
-    id: "r1",
-    title: "Dynamic Programming Quiz",
-    subject: "CS301",
-    score: 95,
-    passed: true,
-    date: "2 days ago",
-  },
-  {
-    id: "r2",
-    title: "Binary Trees Evaluation",
-    subject: "CS201",
-    score: 88,
-    passed: true,
-    date: "1 week ago",
-  },
-  {
-    id: "r3",
-    title: "Physics Lab Safety",
-    subject: "PHY101",
-    score: 55,
-    passed: false,
-    date: "2 weeks ago",
-  },
-];
-
-function scoreColor(score: number) {
-  if (score >= 80) return "text-emerald-500";
-  if (score >= 60) return "text-amber-500";
-  return "text-destructive";
-}
 
 export function StudentOverview() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // State for dynamic data
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        // Assumes your API returns { success: true, data: [...] }
+        const res = await getStudentSubmissionsApi(1, 10);
+        // @ts-ignore - adjust based on your exact SubmissionsListResponse shape
+        setSubmissions(res.data || []); 
+      } catch (error) {
+        console.error("Failed to load dashboard data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // --- DYNAMIC CALCULATIONS ---
+  
+  // 1. Filter Submissions
+  const inProgressSubmissions = submissions.filter(s => s.status === 'in-progress');
+  const completedSubmissions = submissions.filter(s => s.status === 'submitted' || s.status === 'graded');
+  const gradedSubmissions = submissions.filter(s => s.status === 'graded');
+
+  // 2. Map Urgent Items (In-Progress)
+  const URGENT_ITEMS = inProgressSubmissions.map(sub => ({
+    id: sub._id,
+    type: "in-progress",
+    title: sub.exam?.title || "Active Exam",
+    detail: "In Progress (Paused)",
+    action: "Resume",
+    link: `/exam/${sub.exam?._id || sub.exam}`,
+    iconColor: "text-blue-500",
+    icon: Clock,
+  }));
+
+  // 3. Map Recent Results
+  const RECENT_RESULTS = completedSubmissions
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 5) // Keep it to the latest 5
+    .map(sub => ({
+      id: sub._id,
+      title: sub.exam?.title || "Completed Exam",
+      subject: sub.exam?.subject || "General",
+      score: sub.totalScore || 0,
+      passed: sub.passed || false,
+      date: new Date(sub.updatedAt).toLocaleDateString(),
+    }));
+
+  // 4. Calculate Stats
+  const totalGradedScore = gradedSubmissions.reduce((acc, curr) => acc + (curr.totalScore || 0), 0);
+  const avgScore = gradedSubmissions.length > 0 ? Math.round(totalGradedScore / gradedSubmissions.length) : 0;
+  
+  const passedCount = gradedSubmissions.filter(s => s.passed).length;
+  const passRate = gradedSubmissions.length > 0 ? Math.round((passedCount / gradedSubmissions.length) * 100) : 0;
+
+  const STATS = {
+    avgScore,
+    completed: completedSubmissions.length,
+    passRate,
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto space-y-10 pb-12 text-foreground text-left px-2">
-      {/* 1. HEADER & STATS (Flattened) */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Welcome back, John.
-          </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            tAhinI University • BSc Computer Science
+            {user?.institution || "tAhinI University"} • {user?.role === "student" ? "Student Portal" : ""}
           </p>
         </div>
         <div className="flex gap-8 text-sm">
@@ -150,7 +145,7 @@ export function StudentOverview() {
         </div>
       </div>
 
-      {/* 2. URGENT STRIP (No cards, just alert rows) */}
+      {/* 2. URGENT STRIP */}
       {URGENT_ITEMS.length > 0 && (
         <div className="space-y-2">
           {URGENT_ITEMS.map((item) => (
@@ -172,7 +167,7 @@ export function StudentOverview() {
                 size="sm"
                 variant="ghost"
                 className="h-8 text-xs hover:bg-background"
-                onClick={() => navigate(`/exam/${item.id}`)}
+                onClick={() => navigate(item.link)}
               >
                 <Link to={item.link}>
                   {item.action} <ChevronRight className="w-3 h-3 ml-1" />
@@ -183,9 +178,9 @@ export function StudentOverview() {
         </div>
       )}
 
-      {/* 3. SPLIT LAYOUT (Tables instead of Cards) */}
+      {/* 3. SPLIT LAYOUT */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-        {/* LEFT: Upcoming */}
+        {/* LEFT: Upcoming (Still Mocked) */}
         <div className="space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-border">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -228,6 +223,9 @@ export function StudentOverview() {
                 )}
               </div>
             ))}
+            {UPCOMING_TESTS.length === 0 && (
+              <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">No upcoming exams.</p>
+            )}
           </div>
         </div>
 
@@ -276,6 +274,9 @@ export function StudentOverview() {
                 </div>
               </div>
             ))}
+            {RECENT_RESULTS.length === 0 && (
+              <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">No recent results found.</p>
+            )}
           </div>
         </div>
       </div>

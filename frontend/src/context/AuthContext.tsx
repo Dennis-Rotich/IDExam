@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { toast } from "sonner";
 import { type User, type UserRole, type RegisterUserRequest, type LoginUserRequest } from "../types/auth";
 import { loginUserApi, registerUserApi } from "../api/auth"
 import { apiClient } from "../lib/axiosApi";
@@ -15,14 +16,64 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  // CRITICAL: Default to TRUE to block the router until we check local storage
+  const [isLoading, setIsLoading] = useState(true);
+
+  const logOut = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem("tahini_auth_token");
+    delete apiClient.defaults.headers.common["Authorization"];
+  }, []);
+
+  // --- INITIALIZATION PHASE (Handles hard reloads) ---
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem("tahini_auth_token");
+      
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Ensure Axios knows about the token immediately on reload
+        apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        // Fetch the active user's profile
+        const response = await apiClient.get("/user/profile"); 
+        // If successful, set the user state
+        setUser(response.data.user);
+      } catch (error) {
+        console.error("Session restoration failed:", error);
+        logOut(); // Clean up dead token
+      } finally {
+        setIsLoading(false); // Release the router
+      }
+    };
+
+    initializeAuth();
+  }, [logOut]);
+
+  // --- AUTO-LOGOUT LISTENER (Handles 401 Unauthorized globally) ---
+  useEffect(() => {
+    const handleSessionExpiration = () => {
+      logOut();
+      toast.error("Your session has expired. Please log in again.", {
+        duration: 5000,
+      });
+    };
+
+    window.addEventListener("session-expired", handleSessionExpiration);
+
+    return () => {
+      window.removeEventListener("session-expired", handleSessionExpiration);
+    };
+  }, [logOut]);
 
   // This is the callback we pass to loginUserApi
   const setAuthData = (userData: User, token: string) => {
     setUser(userData);
-    localStorage.setItem("token", token);
-    // The apiClient.defaults.headers assignment is already handled inside loginUserApi, 
-    // but storing it here ensures React state updates.
+    localStorage.setItem("tahini_auth_token", token);
+    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   };
 
   async function signUp(data: RegisterUserRequest) {
@@ -41,12 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }
-
-  function logOut() {
-    setUser(null);
-    localStorage.removeItem("token");
-    delete apiClient.defaults.headers.common["Authorization"];
   }
 
   return (

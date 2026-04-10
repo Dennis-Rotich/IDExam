@@ -65,3 +65,14 @@ export const getExamSubmissionsApi = async (examId: string): Promise<Submissions
         throw error;
     }
 };
+
+// Fetch all submissions for the currently logged-in student (with pagination)
+export const getStudentSubmissionsApi = async (page = 1, limit = 10): Promise<any> => {
+    try {
+        const response = await apiClient.get(`/submission/student/me?page=${page}&limit=${limit}`);
+        return response.data;
+    } catch (error) {
+        console.error("Get Student Submissions API error:", error);
+        throw error;
+    }
+};
