@@ -3,7 +3,8 @@ import {
     studentSubmit, 
     runCode, 
     autosave, 
-    getSubmission 
+    getSubmission, 
+    getStudentSubmissions
 } from "../controllers/submissionController.js";
 import { verifyToken } from "../middlewares/auth.js";
 
@@ -11,6 +12,9 @@ const submissionRouter = express.Router();
 
 // Fetch a specific submission session
 submissionRouter.get('/:sessionId', verifyToken, getSubmission);
+
+// fetch all the student's submissions
+submissionRouter.get('/student/me', verifyToken, getStudentSubmissions);
 
 // Autosave progress during the exam
 submissionRouter.post('/autosave/:sessionId', verifyToken, autosave);

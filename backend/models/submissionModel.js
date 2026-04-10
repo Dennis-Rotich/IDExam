@@ -13,14 +13,11 @@ const testResultSchema = new mongoose.Schema({
 // Broadened to handle both code and standard answers
 const answerSubmissionSchema = new mongoose.Schema({
   questionId: { type: mongoose.Schema.Types.ObjectId, required: true },
-
   // Mixed type to support string | string[] | number | boolean and renamed to answer
   // Mongoose Mixed allows flexible structures for autosaving
   answer: { type: mongoose.Schema.Types.Mixed },
-
   // Only relevant if it's a coding question
   language: { type: String },
-
   status: {
     type: String,
     enum: [
@@ -34,7 +31,9 @@ const answerSubmissionSchema = new mongoose.Schema({
     default: "Pending",
   },
   testResults: [testResultSchema],
-  score: { type: Number, default: 0 },
+  score: { type: Number, default: 1 },
+  // Required for instructor feedback
+  instructorFeedback: { type: String },
 });
 
 // 2C. The Main Submission Record
@@ -46,17 +45,31 @@ const submissionSchema = new mongoose.Schema(
       ref: "Student",
       required: true,
     },
-
-    // The student's code for each problem in the exam
-    // renamed from problemSubmissions to answers
     answers: [answerSubmissionSchema],
-
     totalScore: { type: Number, default: 0 },
     isGraded: { type: Boolean, default: false },
-
     startedAt: { type: Date, required: true },
-    endsAt: { type: Date, required: true }, // Added for ExamTimerProps for autosubmission
+    endsAt: { type: Date, required: true },
     submittedAt: { type: Date },
+    // Required for the cron job for autosubmission and the Student "Resume" button
+    status: {
+      type: String,
+      enum: ["in-progress", "submitted", "graded", "abandoned"],
+      default: "in-progress",
+    },
+    // Required for the Student Overview recent results list
+    passed: { type: Boolean, default: false },
+    // Required to permanently store Live Proctoring alerts
+    proctoringFlags: [
+      {
+        type: {
+          type: String,
+          enum: ["tab_switch", "disconnect", "execution_error", "custom"],
+        },
+        message: { type: String },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true },
 );

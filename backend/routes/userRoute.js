@@ -16,7 +16,6 @@ const userRouter = express.Router();
 // Public Routes
 userRouter.post('/register', register);
 userRouter.post('/login', login);
-
 // Protected Routes (Require Login)
 // ==========================================
 // Get the currently logged-in user's profile

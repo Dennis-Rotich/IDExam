@@ -1,4 +1,6 @@
 import examModel from "../models/examModel.js";
+import userModel from "../models/userModel.js";
+import submissionModel from "../models/submissionModel.js";
 
 // CREATE
 const createExam = async (req, res) => {
@@ -64,6 +66,102 @@ const getTeacherExams = async (req, res) => {
         console.error("Get Teacher Exams Error:", error);
         res.status(500).json({ success: false, message: "Failed to fetch exams" });
     }
+};
+
+export const getAssignedExams = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    // 1. Get the student's cohort string
+    const student = await userModel.findById(studentId).select("cohort");
+    // If the student has no cohort, they get no exams.
+    if (!student || !student.cohort) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+    // 2. Fetch active exams where the assignedCohorts array includes the student's cohort string
+    const exams = await examModel.find({ 
+      isActive: true,
+      assignedCohorts: student.cohort 
+    })
+      .populate("createdBy", "name")
+      .lean();
+
+    // 3. Fetch all submissions for THIS student
+    const studentSubmissions = await submissionModel.find({ student: studentId }).lean();
+    // 4. Create the O(1) lookup dictionary
+    const submissionMap = {};
+    studentSubmissions.forEach(sub => {
+      submissionMap[sub.exam.toString()] = sub;
+    });
+
+    const now = new Date();
+
+    // 5. Map the exams and inject the submission context
+    const formattedExams = exams.map((exam) => {
+      const submission = submissionMap[exam._id.toString()];
+      
+      let availability = "available";
+      let inProgress = false;
+      let score;
+      let instructorFeedback;
+
+      const fromDate = exam.availableFrom ? new Date(exam.availableFrom) : new Date(0);
+      const untilDate = exam.availableUntil ? new Date(exam.availableUntil) : new Date(8640000000000000);
+
+      // check availability
+      if (submission) {
+        if (submission.status === "graded") {
+          availability = "completed";
+          score = submission.totalScore;
+          instructorFeedback = submission.instructorFeedback; 
+        } else if (submission.status === "submitted") {
+          availability = "completed";
+          score = null; 
+        } else if (submission.status === "in-progress") {
+          if (untilDate < now) {
+            availability = "locked";
+          } else {
+            availability = "available";
+            inProgress = true;
+          }
+        }
+      } else {
+        if (now < fromDate) {
+          availability = "upcoming";
+        } else if (now > untilDate) {
+          availability = "locked";
+        } else {
+          availability = "available";
+        }
+      }
+
+      // 6. Return exactly what the frontend expects
+      return {
+        id: exam._id,
+        submission: submission || null,
+        title: exam.title,
+        subject: exam.subject || "General",
+        instructorName: exam.createdBy?.name || "Instructor",
+        availability,
+        questionCount: exam.questions ? exam.questions.length : 0,
+        durationMinutes: exam.durationInMinutes,
+        availableFrom: exam.availableFrom,
+        dueDate: exam.availableUntil,
+        score,
+        inProgress,
+        instructorFeedback
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: formattedExams
+    });
+
+  } catch (error) {
+    console.error("Get Assigned Exams Error:", error);
+    res.status(500).json({ success: false, message: "Server error fetching exams" });
+  }
 };
 
 const getExamForEdit = async (req, res) => {
