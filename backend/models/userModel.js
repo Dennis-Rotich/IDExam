@@ -15,6 +15,25 @@ const userSchema = new mongoose.Schema({
   },
   institution: { type: String },
   avatarUrl: { type: String },
+  bio: {
+    type: String,
+    default: function() {
+      // 1. Check if the user is a student
+      if (this.role === 'student') {
+        // 2. Dynamically inject their course if it exists, otherwise fallback to "Student"
+        return this.course ? `${this.course} Student` : 'Student';
+      }
+      // 3. Same dynamic logic for instructors
+      if (this.role === 'instructor') {
+        return this.department ? `${this.department} Instructor` : 'Instructor';
+      }
+      
+      // 4. Static fallback for admins
+      if (this.role === 'admin') return 'Platform Administrator';
+      
+      return '';
+    }
+  },
   // --- Student Specific Fields ---
   studentId: { 
     type: String, 
@@ -22,11 +41,28 @@ const userSchema = new mongoose.Schema({
     required: function() { return this.role === 'student'; },
     sparse: true 
   },
+  course: { type: String },
   cohort: { type: String },
   assignedExams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Exam' }],
   completedExams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Exam' }],
   // --- Instructor Specific Fields ---
   createdExams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Exam' }],
+  department: { type: String },
+
+  preferences: {
+    // Accessibility
+    highContrast: { type: Boolean, default: false },
+    extendedTime: { type: Boolean, default: false },
+    // Exam Experience
+    showProgressBar: { type: Boolean, default: true },
+    confirmSubmit: { type: Boolean, default: true },
+    // Results Display
+    defaultResultsView: { 
+      type: String, 
+      enum: ['score', 'breakdown', 'comparison'], 
+      default: 'score' 
+    }
+  },
   
   //for soft deleting a user's profile 
   isDeleted: {type: Boolean, default: false},
