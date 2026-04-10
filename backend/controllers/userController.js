@@ -230,6 +230,42 @@ const updateUser = async (req, res) => {
   }
 };
 
+export const updatePreferences = async (req, res) => {
+  try {
+    // 1. Get the ID from the verified JWT token
+    const userId = req.user.id;
+    const preferencesData = req.body; 
+
+    // 2. Build a dot-notation update object
+    // If req.body is { highContrast: true }, this creates { "preferences.highContrast": true }
+    const updateQuery = {};
+    for (const [key, value] of Object.entries(preferencesData)) {
+      updateQuery[`preferences.${key}`] = value;
+    }
+
+    // 3. Apply the update safely
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      { $set: updateQuery },
+      { new: true, runValidators: true }
+    ).select('-password'); // Never send the password hash back
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Preferences updated successfully", 
+      user: updatedUser 
+    });
+
+  } catch (error) {
+    console.error("Update Preferences Error:", error);
+    res.status(500).json({ success: false, message: "Server error updating preferences." });
+  }
+};
+
 // DELETE: Remove User
 const deleteUser = async (req, res) => {
   try {
