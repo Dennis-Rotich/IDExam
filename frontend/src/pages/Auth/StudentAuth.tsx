@@ -25,7 +25,10 @@ export function StudentAuth() {
     try {
       if (isLogin) {
         // Backend login uses "identifier" which accepts email or studentId
-        await logIn({identifier: email, password} );
+        await logIn({
+          identifier: email, // Or studentId, depending on your form field name
+          password: password,
+        });
         toast.success("Welcome back!");
         navigate("/student");
       } else {
