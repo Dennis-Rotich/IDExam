@@ -1,30 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
-  Search, Plus, ListFilter, MoreHorizontal, Eye, Copy, FileEdit, Trash, BookOpen, Code2
+  Search, Plus, ListFilter, MoreHorizontal, Eye, Copy, FileEdit, Trash, BookOpen, Code2, Loader2
 } from "lucide-react";
-import { useQuestionStore, type Question } from "../../store/useQuestionStore";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { toast } from "sonner";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 import { QuestionPreviewModal } from "../../components/Instructor/QuestionPreviewModal";
+import { getInstructorQuestionsApi, deleteQuestionApi } from "../../api/question";
+import { useAuth } from "../../context/AuthContext";
+import { type Question } from "../../types/exam";
 
 export function QuestionBank() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const activeTab = searchParams.get("tab") || "my-questions";
   const handleTabChange = (value: string) => setSearchParams({ tab: value });
 
-  const navigate = useNavigate();
-  const { questions, deleteQuestion, duplicateQuestion } = useQuestionStore();
+  // 1. Fetch Questions
+  const loadQuestions = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getInstructorQuestionsApi();
+      setQuestions(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error("Failed to load question bank.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadQuestions();
+  }, []);
+
+  // 2. Handle Delete
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this question?")) {
+      try {
+        await deleteQuestionApi(id);
+        setQuestions(questions.filter(q => q._id !== id));
+        toast.success("Question deleted successfully.");
+      } catch (error) {
+        toast.error("Failed to delete question.");
+      }
+    }
+  };
+
+  // 3. Handle Duplicate 
+  const handleDuplicate = (q: Question) => {
+    toast.info("Duplication feature coming soon!");
+  };
 
   const filteredQuestions = questions.filter((q) => {
-    const matchesSearch = q.title.toLowerCase().includes(searchQuery.toLowerCase()) || q.topic.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTab = activeTab === "all" ? true : activeTab === "my-questions" ? q.author === "You" : q.author !== "You";
+    const matchesSearch = q.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (q.topic || "").toLowerCase().includes(searchQuery.toLowerCase());
+                          
+    // Assuming q.createdBy is populated with an ID or object. Adjust based on your backend response.
+    const isMine = typeof q.createdBy === 'string' ? q.createdBy === user?.id : (q.createdBy as any)?._id === user?.id;
+    
+    const matchesTab = activeTab === "all" ? true : activeTab === "my-questions" ? isMine : !isMine;
+    
     return matchesSearch && matchesTab;
   });
 
@@ -99,58 +145,65 @@ export function QuestionBank() {
           </div>
         </div>
 
-        {filteredQuestions.length > 0 ? (
-          filteredQuestions.map((q, idx) => (
-            <div key={q.id} className={`flex items-center justify-between py-3 px-4 transition-colors rounded-md ${idx % 2 === 0 ? "bg-muted/10" : "bg-transparent"} hover:bg-muted/30`}>
-              
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-5 shrink-0 flex justify-center text-muted-foreground">
-                  {q.type === "Code" ? <Code2 className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="truncate font-medium text-foreground">{q.title}</span>
-                  <span className="text-xs text-muted-foreground mt-0.5">{q.topic}</span>
-                </div>
-              </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredQuestions.length > 0 ? (
+          filteredQuestions.map((q, idx) => {
+            const isMine = typeof q.createdBy === 'string' ? q.createdBy === user?.id : (q.createdBy as any)?._id === user?.id;
 
-              <div className="flex items-center gap-6 shrink-0 pl-4">
-                <span className={`hidden md:inline-block w-20 text-left font-medium ${getDifficultyColor(q.difficulty)}`}>{q.difficulty}</span>
-                <span className={`hidden md:inline-block w-32 text-left truncate ${q.author === "You" ? "text-foreground font-medium" : "text-muted-foreground"}`}>{q.author}</span>
-                <span className="hidden md:inline-block w-24 text-right text-muted-foreground text-xs font-mono">{q.lastModified}</span>
+            return (
+              <div key={q._id} className={`flex items-center justify-between py-3 px-4 transition-colors rounded-md ${idx % 2 === 0 ? "bg-muted/10" : "bg-transparent"} hover:bg-muted/30`}>
                 
-                <div className="w-8 flex justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted rounded-full">
-                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-                      <DropdownMenuLabel className="text-muted-foreground text-xs uppercase tracking-wider">Actions</DropdownMenuLabel>
-                      <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => setPreviewQuestion(q)}><Eye className="mr-2 h-4 w-4 text-muted-foreground" /> Preview</DropdownMenuItem>
-                      {q.author === "You" ? (
-                        <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => navigate(`/instructor/questions/edit/${q.id}`)}>
-                          <FileEdit className="mr-2 h-4 w-4 text-muted-foreground" /> Edit
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => duplicateQuestion(q.id)}>
-                          <Copy className="mr-2 h-4 w-4 text-muted-foreground" /> Duplicate to Mine
-                        </DropdownMenuItem>
-                      )}
-                      {q.author === "You" && (
-                        <>
-                          <DropdownMenuSeparator className="bg-border" />
-                          <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer" onClick={() => deleteQuestion(q.id)}>
-                            <Trash className="mr-2 h-4 w-4" /> Delete
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-5 shrink-0 flex justify-center text-muted-foreground">
+                    {q.type === "CODING" ? <Code2 className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate font-medium text-foreground">{q.title}</span>
+                    <span className="text-xs text-muted-foreground mt-0.5">{q.topic || "General"}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6 shrink-0 pl-4">
+                  <span className={`hidden md:inline-block w-20 text-left font-medium ${getDifficultyColor(q.difficulty)}`}>{q.difficulty}</span>
+                  <span className={`hidden md:inline-block w-32 text-left truncate ${isMine ? "text-foreground font-medium" : "text-muted-foreground"}`}>{isMine ? "You" : "Dept. Instructor"}</span>
+                  
+                  <div className="w-8 flex justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted rounded-full">
+                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 bg-card border-border">
+                        <DropdownMenuLabel className="text-muted-foreground text-xs uppercase tracking-wider">Actions</DropdownMenuLabel>
+                        <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => setPreviewQuestion(q)}><Eye className="mr-2 h-4 w-4 text-muted-foreground" /> Preview</DropdownMenuItem>
+                        {isMine ? (
+                          <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => navigate(`/instructor/questions/edit/${q._id}`)}>
+                            <FileEdit className="mr-2 h-4 w-4 text-muted-foreground" /> Edit
                           </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        ) : (
+                          <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => handleDuplicate(q)}>
+                            <Copy className="mr-2 h-4 w-4 text-muted-foreground" /> Duplicate to Mine
+                          </DropdownMenuItem>
+                        )}
+                        {isMine && q._id && (
+                          <>
+                            <DropdownMenuSeparator className="bg-border" />
+                            <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer" onClick={() => handleDelete(q._id!)}>
+                              <Trash className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Search className="h-8 w-8 mb-3 opacity-20" />

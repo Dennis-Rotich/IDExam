@@ -6,7 +6,7 @@ import { type BrowseTest } from "../types/exam";
 // CREATE
 export const createExamApi = async (examData: Partial<Exam>): Promise<{success: boolean; message: string; examId: string}> => {
     try {
-        const response = await apiClient.post("/exam", examData);
+        const response = await apiClient.post("/exam/new", examData);
         return response.data;
     } catch (error) {
         console.error("Create Exam API error:", error);
@@ -38,7 +38,7 @@ export const getAssignedExamsApi = async (): Promise<BrowseTest[]> => {
 // READ (Instructor)
 export const getTeacherExamsApi = async (): Promise<ExamsListResponse> => {
     try {
-        const response = await apiClient.get<ExamsListResponse>("/exam/instructor");
+        const response = await apiClient.get<ExamsListResponse>("/exam/teacher/all");
         return response.data;
     } catch (error) {
         console.error("Get Teacher Exams API error:", error);
@@ -48,7 +48,7 @@ export const getTeacherExamsApi = async (): Promise<ExamsListResponse> => {
 
 export const getExamForEditApi = async (examId: string): Promise<ExamResponse> => {
     try {
-        const response = await apiClient.get<ExamResponse>(`/exam/instructor/${examId}`);
+        const response = await apiClient.get<ExamResponse>(`/exam/teacher/${examId}`);
         return response.data;
     } catch (error) {
         console.error("Get Exam For Edit API error:", error);

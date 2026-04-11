@@ -1,66 +1,127 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Plus, Search, ListFilter, MoreHorizontal, ClipboardList, Clock, Users,
-  CheckCircle2, CircleDashed, Archive, Pencil, Trash2, Eye, BarChart2
+  Plus,
+  Search,
+  ListFilter,
+  MoreHorizontal,
+  ClipboardList,
+  Clock,
+  Users,
+  Pencil,
+  Trash2,
+  Eye,
+  BarChart2,
+  CheckCircle2,
+  CircleDashed,
+  Archive,
+  Loader2,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
+import {
+  getTeacherExamsApi,
+  deleteExamApi,
+  updateExamApi,
+} from "../../api/exam";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 
 // Modals
 import { TestPreviewModal } from "../../components/Instructor/TestPreviewModal";
 import { CreateEditTestModal } from "../../components/Instructor/CreateEditTestModal";
 
-type TestStatus = "published" | "draft" | "closed";
-
-interface Test {
-  id: string; title: string; subject: string; status: TestStatus;
-  questionCount: number; enrolledCount: number; submittedCount: number;
-  durationMinutes: number; dueDate: string;
-}
-
-const INITIAL_TESTS: Test[] = [
-  { id: "1", title: "Midterm: Data Structures", subject: "CS201", status: "published", questionCount: 40, enrolledCount: 87, submittedCount: 52, durationMinutes: 90, dueDate: "2026-04-10" },
-  { id: "2", title: "Quiz 3 — Binary Trees", subject: "CS201", status: "published", questionCount: 15, enrolledCount: 87, submittedCount: 87, durationMinutes: 30, dueDate: "2026-03-28" },
-  { id: "3", title: "Final Exam Draft", subject: "CS201", status: "draft", questionCount: 0, enrolledCount: 0, submittedCount: 0, durationMinutes: 180, dueDate: "2026-05-20" },
-];
-
-const STATUS_META: Record<TestStatus, { label: string; icon: React.ElementType; color: string }> = {
-  published: { label: "Published", icon: CheckCircle2, color: "text-emerald-500" },
-  draft: { label: "Draft", icon: CircleDashed, color: "text-muted-foreground" },
-  closed: { label: "Closed", icon: Archive, color: "text-amber-500" },
-};
-
-type FilterTab = "all" | TestStatus;
+const STATUS_META: Record<string, { label: string; icon: any; color: string }> =
+  {
+    published: {
+      label: "Published",
+      icon: CheckCircle2,
+      color: "text-emerald-500",
+    },
+    draft: {
+      label: "Draft",
+      icon: CircleDashed,
+      color: "text-muted-foreground",
+    },
+    closed: { label: "Closed", icon: Archive, color: "text-amber-500" },
+  };
 
 export function InstructorTestsPage() {
-  const [tests, setTests] = useState<Test[]>(INITIAL_TESTS);
+  const [tests, setTests] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterTab>("all");
+  const [filter, setFilter] = useState<string>("all");
   const navigate = useNavigate();
 
   // Modal States
-  const [previewTest, setPreviewTest] = useState<Test | null>(null);
+  const [previewTest, setPreviewTest] = useState<any>(null);
   const [isCreateEditModalOpen, setIsCreateEditModalOpen] = useState(false);
-  const [testToEdit, setTestToEdit] = useState<Test | null>(null);
+  const [testToEdit, setTestToEdit] = useState<any>(null);
 
-  const handleSaveTest = (testData: any) => {
-    if (testToEdit) {
-      setTests(tests.map(t => t.id === testData.id ? { ...t, ...testData } : t));
-    } else {
-      const newTest: Test = { ...testData, id: Math.random().toString(36).substring(2, 9), questionCount: 0, enrolledCount: 0, submittedCount: 0 };
-      setTests([newTest, ...tests]);
+  // 1. Fetch Exams
+  const loadExams = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getTeacherExamsApi();
+      // Safely extract the array based on your ExamsListResponse type
+      const examsArray = Array.isArray(response)
+        ? response
+        : (response as any).exams || (response as any).data || [];
+      setTests(examsArray);
+    } catch (error) {
+      toast.error("Failed to load exams.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDelete = (id: string) => {
-    if(confirm("Are you sure you want to delete this test?")) setTests(tests.filter(t => t.id !== id));
+  useEffect(() => {
+    loadExams();
+  }, []);
+
+  // Handle Save/Edit Modal
+  const handleSaveTest = async (testData: any) => {
+    try {
+      if (testToEdit) {
+        await updateExamApi(testData._id, testData);
+        toast.success("Exam updated successfully!");
+      }
+      loadExams(); // Refresh list after edit
+      setIsCreateEditModalOpen(false);
+    } catch (error) {
+      toast.error("Failed to update exam.");
+    }
   };
 
+  // Handle Delete
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this exam?")) {
+      try {
+        await deleteExamApi(id);
+        setTests(tests.filter((t) => t._id !== id));
+        toast.success("Exam deleted.");
+      } catch (error) {
+        toast.error("Failed to delete exam.");
+      }
+    }
+  };
+
+  // Client-side filtering & status mapping
   const filtered = tests.filter((t) => {
-    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.subject.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === "all" || t.status === filter;
+    const calculatedStatus = t.isActive ? "published" : "closed";
+
+    const matchesSearch =
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      (t.courseCode || "").toLowerCase().includes(search.toLowerCase());
+
+    const matchesFilter = filter === "all" || calculatedStatus === filter;
+
     return matchesSearch && matchesFilter;
   });
 
@@ -73,18 +134,22 @@ export function InstructorTestsPage() {
 
   return (
     <div className="mx-auto space-y-6 pb-12 text-left text-foreground px-2">
-      
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <ClipboardList className="h-7 w-7" /> Examinations
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Create, manage, and track all your published and draft exams.</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Create, manage, and track all your published and draft exams.
+          </p>
         </div>
-        <Button 
+        <Button
           className="w-full sm:w-auto bg-foreground text-background hover:bg-foreground/90 rounded-full h-9 px-5 shrink-0"
-          onClick={() => { setTestToEdit(null); setIsCreateEditModalOpen(true); }}
+          onClick={() => {
+            setTestToEdit(null);
+            setIsCreateEditModalOpen(true);
+          }}
         >
           <Plus className="h-4 w-4 mr-2" /> New Exam
         </Button>
@@ -96,10 +161,14 @@ export function InstructorTestsPage() {
           {categories.map((cat) => {
             const isActive = filter === cat.id;
             return (
-              <Button 
-                key={cat.id} onClick={() => setFilter(cat.id as FilterTab)} variant={isActive ? "default" : "secondary"}
+              <Button
+                key={cat.id}
+                onClick={() => setFilter(cat.id)}
+                variant={isActive ? "default" : "secondary"}
                 className={`rounded-full h-9 px-4 shrink-0 text-sm font-medium transition-colors ${
-                  isActive ? "bg-foreground text-background hover:bg-foreground/90" : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent hover:border-border"
+                  isActive
+                    ? "bg-foreground text-background hover:bg-foreground/90"
+                    : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent hover:border-border"
                 }`}
               >
                 {cat.label}
@@ -111,9 +180,18 @@ export function InstructorTestsPage() {
         <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search exams..." className="pl-9 bg-muted/30 border-transparent focus-visible:ring-1 focus-visible:ring-border h-9 text-sm rounded-full" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input
+              placeholder="Search exams..."
+              className="pl-9 bg-muted/30 border-transparent focus-visible:ring-1 focus-visible:ring-border h-9 text-sm rounded-full"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          <Button variant="secondary" size="icon" className="h-9 w-9 rounded-full bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-9 w-9 rounded-full bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
             <ListFilter className="w-4 h-4" />
           </Button>
         </div>
@@ -135,42 +213,102 @@ export function InstructorTestsPage() {
         </div>
 
         {/* LIST BODY */}
-        {filtered.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length > 0 ? (
           filtered.map((test, idx) => {
-            const meta = STATUS_META[test.status];
+            const statusStr = test.isActive ? "published" : "closed";
+            const meta = STATUS_META[statusStr] || STATUS_META.draft;
             const StatusIcon = meta.icon;
 
             return (
-              <div key={test.id} className={`flex items-center justify-between py-3 px-4 transition-colors rounded-md ${idx % 2 === 0 ? "bg-muted/10" : "bg-transparent"} hover:bg-muted/30`}>
-                
+              <div
+                key={test._id}
+                className={`flex items-center justify-between py-3 px-4 transition-colors rounded-md ${idx % 2 === 0 ? "bg-muted/10" : "bg-transparent"} hover:bg-muted/30`}
+              >
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className={`w-5 shrink-0 flex justify-center ${meta.color}`}>
+                  <div
+                    className={`w-5 shrink-0 flex justify-center ${meta.color}`}
+                  >
                     <StatusIcon className="w-4 h-4" />
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="truncate font-medium text-foreground">{test.title}</span>
-                    <span className="text-xs text-muted-foreground mt-0.5">{test.subject} • Due {test.dueDate ? new Date(test.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "TBD"}</span>
+                    <span className="truncate font-medium text-foreground">
+                      {test.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-0.5">
+                      {test.courseCode || "General"} • Due{" "}
+                      {test.availableUntil
+                        ? new Date(test.availableUntil).toLocaleDateString(
+                            "en-GB",
+                            { day: "numeric", month: "short" },
+                          )
+                        : "TBD"}
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-6 shrink-0 pl-4">
-                  <span className="hidden md:flex items-center gap-1.5 w-20 text-left text-muted-foreground text-xs"><ClipboardList className="w-3.5 h-3.5"/> {test.questionCount}</span>
-                  <span className="hidden md:flex items-center gap-1.5 w-24 text-left text-muted-foreground text-xs"><Users className="w-3.5 h-3.5"/> {test.enrolledCount}</span>
-                  <span className="hidden md:flex items-center gap-1.5 w-20 text-left text-muted-foreground text-xs"><Clock className="w-3.5 h-3.5"/> {test.durationMinutes}m</span>
-                  
+                  <span className="hidden md:flex items-center gap-1.5 w-20 text-left text-muted-foreground text-xs">
+                    <ClipboardList className="w-3.5 h-3.5" />{" "}
+                    {test.questions?.length || 0}
+                  </span>
+                  <span className="hidden md:flex items-center gap-1.5 w-24 text-left text-muted-foreground text-xs">
+                    <Users className="w-3.5 h-3.5" />{" "}
+                    {test.assignedCohorts?.length || 0}
+                  </span>
+                  <span className="hidden md:flex items-center gap-1.5 w-20 text-left text-muted-foreground text-xs">
+                    <Clock className="w-3.5 h-3.5" />{" "}
+                    {test.durationInMinutes || 0}m
+                  </span>
+
                   <div className="w-8 flex justify-end">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted rounded-full">
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0 hover:bg-muted rounded-full"
+                        >
                           <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-                        <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => setPreviewTest(test)}><Eye className="mr-2 h-4 w-4 text-muted-foreground" /> View Details</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => { setTestToEdit(test); setIsCreateEditModalOpen(true); }}><Pencil className="mr-2 h-4 w-4 text-muted-foreground" /> Edit Settings</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer hover:bg-muted" onClick={() => navigate(`/instructor/review`)}><BarChart2 className="mr-2 h-4 w-4 text-muted-foreground" /> Submissions</DropdownMenuItem>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-48 bg-card border-border"
+                      >
+                        <DropdownMenuItem
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => setPreviewTest(test)}
+                        >
+                          <Eye className="mr-2 h-4 w-4 text-muted-foreground" />{" "}
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => {
+                            setTestToEdit(test);
+                            setIsCreateEditModalOpen(true);
+                          }}
+                        >
+                          <Pencil className="mr-2 h-4 w-4 text-muted-foreground" />{" "}
+                          Edit Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => navigate(`/instructor/review`)}
+                        >
+                          <BarChart2 className="mr-2 h-4 w-4 text-muted-foreground" />{" "}
+                          Submissions
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-border" />
-                        <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer" onClick={() => handleDelete(test.id)}><Trash2 className="mr-2 h-4 w-4" /> Delete Exam</DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
+                          onClick={() => handleDelete(test._id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete Exam
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -187,8 +325,16 @@ export function InstructorTestsPage() {
       </div>
 
       {/* Render Modals */}
-      <TestPreviewModal test={previewTest} onClose={() => setPreviewTest(null)} />
-      <CreateEditTestModal isOpen={isCreateEditModalOpen} onClose={() => setIsCreateEditModalOpen(false)} testToEdit={testToEdit} onSave={handleSaveTest} />
+      <TestPreviewModal
+        test={previewTest}
+        onClose={() => setPreviewTest(null)}
+      />
+      <CreateEditTestModal
+        isOpen={isCreateEditModalOpen}
+        onClose={() => setIsCreateEditModalOpen(false)}
+        testToEdit={testToEdit}
+        onSave={handleSaveTest}
+      />
     </div>
   );
 }

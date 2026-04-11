@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { AlertTriangle, Info, ShieldAlert, ChevronDown, ChevronUp, Clock, BarChart2, Activity, Bell } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { socket } from "../../lib/socket";
+import { socket } from "../../lib/socket"; // Uses your updated socket file
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "../../components/ui/dialog";
@@ -24,9 +25,6 @@ const INITIAL_ALERTS = [
   { id: 1, type: "warning", message: "Jaylen Brooks — tab switch detected (3×)", time: "2:31 PM" },
   { id: 2, type: "critical", message: "Priya Nair — extension request pending", time: "2:44 PM" },
   { id: 3, type: "info", message: "2 students have not yet opened the exam", time: "2:00 PM" },
-  { id: 4, type: "warning", message: "Jaylen Brooks — tab switch detected (3×)", time: "2:31 PM" },
-  { id: 5, type: "critical", message: "Priya Nair — extension request pending", time: "2:44 PM" },
-  { id: 6, type: "info", message: "2 students have not yet opened the exam", time: "2:00 PM" },
 ];
 
 const HISTOGRAM_DATA = [
@@ -70,52 +68,72 @@ const getAlertIcon = (type: string) => {
 };
 
 export function LiveProctoring() {
+  const { examId } = useParams<{ examId: string }>();
+
   // --- REAL-TIME SOCKET STATE ---
   const [activeStudents, setActiveStudents] = useState<Set<string>>(new Set());
-  const [liveAlerts, setLiveAlerts] = useState(INITIAL_ALERTS);
+  const [liveAlerts, setLiveAlerts] = useState<any[]>(INITIAL_ALERTS);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    if (!examId) return; // Prevent connecting if no exam ID is present
+
+    // 1. Connect to the WebSocket
     socket.connect();
     
-    socket.on("connect", () => {
+    // 2. Define Event Handlers
+    const onConnect = () => {
       setIsConnected(true);
-      socket.emit("join_exam", "teacher");
-    });
+      socket.emit("join_exam", { role: "instructor", examId: examId }); // Tells backend to put us in the Dashboard room
+    };
 
-    socket.on("disconnect", () => setIsConnected(false));
+    const onDisconnect = () => {
+      setIsConnected(false);
+    };
 
-    socket.on("student_joined", (studentId: string) => {
-      setActiveStudents(prev => new Set(prev).add(studentId));
-    });
+    const onStudentJoined = (studentId: string) => {
+      setActiveStudents(prev => {
+        const next = new Set(prev);
+        next.add(studentId);
+        return next;
+      });
+    };
 
-    socket.on("student_left", (studentId: string) => {
+    const onStudentLeft = (studentId: string) => {
       setActiveStudents(prev => {
         const next = new Set(prev);
         next.delete(studentId);
         return next;
       });
-    });
+    };
 
-    // Automatically flag runtime errors as warnings in the alert feed
-    socket.on("student_execution_result", (data: { studentId: string; language: string; isError: boolean }) => {
+    const onExecutionResult = (data: { studentId: string; language: string; isError: boolean }) => {
       if (data.isError) {
+        const shortId = data.studentId.length > 5 ? `${data.studentId.substring(0, 5)}...` : data.studentId;
         const newAlert = {
           id: Date.now(),
           type: "warning",
-          message: `Student ${data.studentId.substring(0, 5)}... — runtime error in ${data.language}`,
+          message: `Student ${shortId} — runtime error in ${data.language}`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setLiveAlerts(prev => [newAlert, ...prev]);
       }
-    });
+    };
 
+    // 3. Attach Listeners
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("student_joined", onStudentJoined);
+    socket.on("student_left", onStudentLeft);
+    socket.on("student_execution_result", onExecutionResult);
+
+    // 4. Cleanup on unmount to prevent duplicate listeners
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("student_joined");
-      socket.off("student_left");
-      socket.off("student_execution_result");
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("student_joined", onStudentJoined);
+      socket.off("student_left", onStudentLeft);
+      socket.off("student_execution_result", onExecutionResult);
       socket.disconnect();
     };
   }, []);
@@ -143,8 +161,7 @@ export function LiveProctoring() {
     setIsEndExamOpen(false);
   };
 
-  // Use MVP number (87) if no socket connections yet, otherwise show real count
-  const displayStudentCount = activeStudents.size > 0 ? activeStudents.size : 87;
+  const displayStudentCount = activeStudents.size;
 
   return (
     <div className="mx-auto space-y-6 pb-12 text-foreground text-left px-2">
@@ -156,8 +173,13 @@ export function LiveProctoring() {
             <Activity className="h-7 w-7" /> Live Proctoring
           </h1>
           <p className="text-muted-foreground mt-1 text-sm flex items-center gap-2">
-            CS201 Midterm Examination • {displayStudentCount} Students Active
-            {isConnected && <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-2" title="Socket Connected" />}
+            {/* Note: The backend currently hardcodes EXAM_ID = 'CS101' */}
+            CS101 Examination • {displayStudentCount} Students Active
+            {isConnected ? (
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-2" title="Socket Connected" />
+            ) : (
+              <span className="flex h-2 w-2 rounded-full bg-red-500 ml-2" title="Socket Disconnected" />
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -264,7 +286,7 @@ export function LiveProctoring() {
         <div className="border border-border rounded-lg bg-card/30 overflow-hidden flex flex-col">
           <div className="py-2.5 px-4 border-b border-border bg-muted/10 text-xs font-semibold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
             <span className="flex items-center gap-2"><Bell className="w-3.5 h-3.5" /> Flags & Alerts</span>
-            <span className="bg-destructive/10 text-red-500 px-2 py-0.5 rounded-full">{liveAlerts.length} New</span>
+            <span className="bg-destructive/10 text-red-500 px-2 py-0.5 rounded-full">{liveAlerts.length} Total</span>
           </div>
           
           <div className="p-2 space-y-2 flex-1 overflow-y-auto max-h-[350px]">
