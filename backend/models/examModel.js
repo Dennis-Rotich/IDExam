@@ -3,10 +3,12 @@ import mongoose from "mongoose";
 const examSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
+    examCode: { type: String, required: true, unique: true }, // NEW
+    courseCode: { type: String, required: true }, // NEW
     instructions: { type: String },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Teacher",
+      ref: "user", 
       required: true,
     },
     durationInMinutes: { type: Number, required: true },
@@ -15,7 +17,7 @@ const examSchema = new mongoose.Schema(
     aiProctoringEnabled: { type: Boolean, default: false },
     aiGradingEnabled: { type: Boolean, default: true },
     
-    // The Exam simply stores a list of ID strings pointing to the Question collection
+    // Stores a list of ID strings pointing to the Question collection
     questions: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -25,13 +27,9 @@ const examSchema = new mongoose.Schema(
     ],
     
     isActive: { type: Boolean, default: true },
-    assignedCohorts: [
-      {
-        type: String,
-      },
-    ],
+    assignedCohorts: [{ type: String }],
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 const examModel = mongoose.models.exam || mongoose.model("exam", examSchema);

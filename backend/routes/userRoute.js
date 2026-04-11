@@ -8,9 +8,10 @@ import {
     getUserProfile, 
     updateUser, 
     deleteUserById,
-    updatePreferences
+    updatePreferences,
+    getTeacherDashboard
 } from '../controllers/userController.js';
-import { verifyToken, isAdmin } from "../middlewares/auth.js";
+import { verifyToken, isAdmin, isTeacher } from "../middlewares/auth.js";
 
 const userRouter = express.Router();
 
@@ -21,8 +22,8 @@ userRouter.post('/login', login);
 // ==========================================
 // Get the currently logged-in user's profile
 userRouter.get('/profile', verifyToken, getUserProfile);
+userRouter.get('/instructor/dashboard', verifyToken, isTeacher, getTeacherDashboard);
 // Update a user's details by ID 
-// updated it to fetch id from the session and not the params
 userRouter.put('/profile', verifyToken, updateUser);
 
 userRouter.put('/preferences', verifyToken, updatePreferences);

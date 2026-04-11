@@ -18,7 +18,7 @@ examRouter.get('/teacher/all', verifyToken, isTeacher, getTeacherExams);
 // Get a single exam with all hidden test cases for editing
 examRouter.get('/teacher/:examId', verifyToken, isTeacher, getExamForEdit);
 // Create a new exam
-examRouter.post('/', verifyToken, isTeacher, createExam);
+examRouter.post('/new', verifyToken, isTeacher, createExam);
 
 // Update an existing exam
 examRouter.put('/:examId', verifyToken, isTeacher, updateExam);

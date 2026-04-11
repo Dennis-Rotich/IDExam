@@ -39,10 +39,10 @@ const answerSubmissionSchema = new mongoose.Schema({
 // 2C. The Main Submission Record
 const submissionSchema = new mongoose.Schema(
   {
-    exam: { type: mongoose.Schema.Types.ObjectId, ref: "Exam", required: true },
+    exam: { type: mongoose.Schema.Types.ObjectId, ref: "exam", required: true },
     student: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
+      ref: "user",
       required: true,
     },
     answers: [answerSubmissionSchema],
