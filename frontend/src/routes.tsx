@@ -144,7 +144,7 @@ const MainRoutes = () => {
             },
             {
               path: "help",
-              element: <HelpAndSupportPage role="student"/>,
+              element: <HelpAndSupportPage />,
             },
           ],
         },
@@ -203,7 +203,7 @@ const MainRoutes = () => {
             },
             {
               path: "help",
-              element: <HelpAndSupportPage role="instructor"/>,
+              element: <HelpAndSupportPage />,
             },
           ],
         },

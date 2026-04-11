@@ -29,3 +29,16 @@ export function getDifficultyColor(diff: string) {
   if (diff === "Hard") return "text-red-500";
   return "text-destructive";
 }
+
+export const generateExamCode = (courseCode: string = "") => {
+  const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+  const cleanCourse = courseCode.trim().toUpperCase();
+  
+  if (cleanCourse) {
+    // If course code is CS101, returns CS101-A4B9
+    return `${cleanCourse}-${randomStr}`;
+  }
+  
+  // Fallback if no course code is entered
+  return `EXAM-${randomStr}`;
+};

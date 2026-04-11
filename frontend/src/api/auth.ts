@@ -42,6 +42,16 @@ export const getUserProfileApi = async (): Promise<{ success: boolean; user: Use
     }
 };
 
+export const getInstructorDashboardApi = async () => {
+    try {
+        const response = await apiClient.get("/user/instructor/dashboard");
+        return response.data;
+    } catch (error) {
+        console.error("Get Instructor Dashboard API error:", error);
+        throw error;
+    }
+};
+
 export const updateUserApi = async (updateData: UpdateUserRequest): Promise<{ success: boolean; message: string; user: User }> => {
     try {
         const response = await apiClient.put<{ success: boolean; message: string; user: User }>("/user/profile", updateData);
