@@ -279,6 +279,42 @@ const updateExam = async (req, res) => {
   }
 };
 
+const addQuestionToExam = async (req, res) => {
+  try {
+    const examId = req.params.examId;
+    
+    // 1. Verify Exam exists and User is authorized
+    const exam = await examModel.findById(examId);
+    if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
+    
+    if (exam.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    // 2. Create the Question, attaching the examId
+    const newQuestion = new questionModel({
+      ...req.body, // title, difficulty, points, test_cases, etc.
+      examId: exam._id 
+    });
+    
+    const savedQuestion = await newQuestion.save();
+
+    // 3. Push the new Question's ID into the Exam's problems array
+    exam.problems.push(savedQuestion._id);
+    await exam.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Question added successfully.",
+      question_id: savedQuestion._id
+    });
+
+  } catch (error) {
+    console.error("Add Question Error:", error);
+    res.status(500).json({ success: false, message: "Failed to add question" });
+  }
+};
+
 // DELETE
 const deleteExam = async (req, res) => {
   try {
@@ -321,5 +357,6 @@ export {
   getTeacherExams,
   getExamForEdit,
   updateExam,
+  addQuestionToExam,
   deleteExam,
 };
