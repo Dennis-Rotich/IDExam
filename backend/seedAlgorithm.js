@@ -90,7 +90,7 @@ const seedQuestions = [
 const seedDatabase = async () => {
   try {
     // 1. Connect to Database
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to MongoDB");
 
     // 2. Verify Exam Exists
