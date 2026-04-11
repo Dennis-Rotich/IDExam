@@ -5,13 +5,13 @@ import submissionModel from "../models/submissionModel.js";
 // CREATE
 const createExam = async (req, res) => {
     try {
-        const { title, durationInMinutes, problems } = req.body;
+        const { title, durationInMinutes, questions } = req.body;
 
         const newExam = new examModel({
             title, 
             createdBy: req.user.id, 
             durationInMinutes, 
-            problems
+            questions
         });
 
         await newExam.save();
