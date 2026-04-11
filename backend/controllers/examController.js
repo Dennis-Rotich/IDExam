@@ -1,6 +1,7 @@
 import examModel from "../models/examModel.js";
 import userModel from "../models/userModel.js";
 import submissionModel from "../models/submissionModel.js";
+import questionModel from "../models/questionModel.js";
 
 // CREATE
 const createExam = async (req, res) => {
