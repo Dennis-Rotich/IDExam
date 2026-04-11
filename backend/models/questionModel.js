@@ -10,7 +10,11 @@ const testCaseSchema = new mongoose.Schema({
 
 // 2. The Main Question Schema
 const questionSchema = new mongoose.Schema({
-  // --- Core Metadata ---
+  examId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'exam', 
+    required: true 
+  },
   displayId: { type: Number, unique: true }, // For LeetCode-style numbering (e.g., Question 1, 2, 3)
   title: { type: String, required: true },
   description: { type: String, required: true }, // The problem statement (supports Markdown/HTML)

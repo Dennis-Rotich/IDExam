@@ -9,7 +9,7 @@ import { verifyToken, isAdmin, isTeacher } from "../middlewares/auth.js";
 
 const questionRouter = express.Router();
 
-questionRouter.post("/", verifyToken, isTeacher, createQuestion);
+questionRouter.post("/new", verifyToken, isTeacher, createQuestion);
 
 questionRouter.get(
   "/instructor",
