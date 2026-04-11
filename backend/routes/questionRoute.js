@@ -4,7 +4,7 @@ import {
   getInstructorQuestions,
   updateQuestion,
   deleteQuestion,
-} from "../controllers/questionController";
+} from "../controllers/questionController.js";
 import { verifyToken, isAdmin, isTeacher } from "../middlewares/auth.js";
 
 const questionRouter = express.Router();
