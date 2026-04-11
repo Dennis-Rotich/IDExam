@@ -24,7 +24,7 @@ examRouter.post('/new', verifyToken, isTeacher, createExam);
 // Update an existing exam
 examRouter.put('/:examId', verifyToken, isTeacher, updateExam);
 
-examRouter.put('/:examId/questions', verifyToken, isTeacher, addQuestionToExam);
+examRouter.post('/:examId/questions', verifyToken, isTeacher, addQuestionToExam);
 
 // Delete an exam
 examRouter.delete('/:examId', verifyToken, isTeacher, deleteExam);
