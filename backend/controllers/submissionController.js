@@ -29,7 +29,7 @@ const autosave = async (req, res) => {
           "answers.$.language": language,
         },
       },
-      { new: true },
+      { returnDocument: 'after' } ,
     );
 
     // If the answer object doesn't exist in the array yet, push it
@@ -41,7 +41,7 @@ const autosave = async (req, res) => {
             answers: { questionId, language, answer },
           },
         },
-        { new: true },
+        { returnDocument: 'after' } ,
       );
 
       if (!result) {
@@ -178,7 +178,7 @@ const studentSubmit = async (req, res) => {
         $push: { answers: newQuestionSubmission },
         $inc: { totalScore: totalScore },
       },
-      { new: true }
+      { returnDocument: 'after' } 
     );
 
     // --- EXAM FEEDBACK MASKING ---
@@ -257,7 +257,7 @@ export const finalizeExam = async (req, res) => {
           submittedAt: new Date() 
         } 
       },
-      { new: true }
+      { returnDocument: 'after' } 
     );
 
     if (!submission) {
@@ -290,7 +290,7 @@ const getSubmission = async (req, res) => {
             submittedAt: submission.endsAt,
           },
         },
-        { new: true },
+        { returnDocument: 'after' } ,
       );
     }
 
