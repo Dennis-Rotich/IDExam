@@ -50,7 +50,10 @@ const createExam = async (req, res) => {
 // READ (Student - Sanitized)
 const getExam = async (req, res) => {
   try {
-    const exam = await examModel.findById(req.params.examId).lean();
+    const exam = await examModel
+      .findById(req.params.examId)
+      .populate("questions")
+      .lean();
 
     if (!exam || !exam.isActive) {
       return res
@@ -59,15 +62,21 @@ const getExam = async (req, res) => {
     }
 
     // Sanitize test cases so students cannot see hidden inputs/outputs
-    const sanitizedQuestions = exam.questions.map((question) => {
-      // fallback logic above so that a single bad database entry doesn't take down the Student IDE
+    const sanitizedQuestions = (exam.questions || []).map((question) => {
+      // If the populate failed, `question` is just a Buffer (raw ID), not an object.
+      if (!question || !question._id) {
+        return question;
+      }
+
       const cases = question.testCases || question.test_cases || [];
+
       const safeTestCases = cases
-        .filter((tc) => !tc.isHidden)
+        .filter((tc) => !tc.isHidden && !tc.is_hidden)
         .map((tc) => ({
           _id: tc._id,
           input: tc.input,
         }));
+
       return {
         ...question,
         testCases: safeTestCases,
