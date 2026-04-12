@@ -65,13 +65,13 @@ questionSchema.pre('save', async function() {
   if (this.isNew && !this.displayId) {
     // Atomically find the counter and increment it by 1. 
     // upsert: true creates the document if it doesn't exist yet.
-    const counter = await counter.findByIdAndUpdate(
+    const counterDoc = await counter.findByIdAndUpdate(
       { _id: 'question_display_id' },
       { $inc: { seq: 1 } },
       { new: true, upsert: true }
     );
     
-    this.displayId = counter.seq;
+    this.displayId = counterDoc.seq;
   }
 });
 
