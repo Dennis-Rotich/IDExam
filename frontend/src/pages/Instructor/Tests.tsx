@@ -147,8 +147,7 @@ export function InstructorTestsPage() {
         <Button
           className="w-full sm:w-auto bg-foreground text-background hover:bg-foreground/90 rounded-full h-9 px-5 shrink-0"
           onClick={() => {
-            setTestToEdit(null);
-            setIsCreateEditModalOpen(true);
+            navigate("/instructor/exams/new");
           }}
         >
           <Plus className="h-4 w-4 mr-2" /> New Exam
