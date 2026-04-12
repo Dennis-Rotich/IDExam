@@ -300,8 +300,13 @@ const addQuestionToExam = async (req, res) => {
     
     const savedQuestion = await newQuestion.save();
 
-    // 3. Push the new Question's ID into the Exam's problems array
-    exam.problems.push(savedQuestion._id);
+    // FIX: Initialize the array if it's undefined (legacy document handling)
+    if (!exam.questions) {
+      exam.questions = [];
+    }
+
+    // 3. Push the new Question's ID into the Exam's questions array
+    exam.questions.push(savedQuestion._id);
     await exam.save();
 
     res.status(201).json({

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import counter from "./counterModel.js"
 
 // 1. Sub-schema for Coding Test Cases
 const testCaseSchema = new mongoose.Schema({
@@ -62,10 +63,16 @@ const questionSchema = new mongoose.Schema({
 // so that questions can automatically number themselves like LeetCode.
 questionSchema.pre('save', async function() {
   if (this.isNew && !this.displayId) {
-    const lastQuestion = await this.constructor.findOne({}, {}, { sort: { displayId: -1 } });
-    this.displayId = lastQuestion && lastQuestion.displayId ? lastQuestion.displayId + 1 : 1;
+    // Atomically find the counter and increment it by 1. 
+    // upsert: true creates the document if it doesn't exist yet.
+    const counter = await counter.findByIdAndUpdate(
+      { _id: 'question_display_id' },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    
+    this.displayId = counter.seq;
   }
-  //next();
 });
 
 const questionModel = mongoose.models.question || mongoose.model("question", questionSchema);
