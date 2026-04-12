@@ -1,26 +1,27 @@
 import submissionModel from "../models/submissionModel.js";
 import examModel from "../models/examModel.js";
-
 import axios from "axios";
 
-// to handle frequent API saves
+// to handle frequent API saves - a quiet, background operation designed to prevent data loss. 
+// It fires frequently (e.g., every 2 seconds after the student stops typing) to ensure that if their browser crashes, 
+// their text or code is safely stored in the database.
 const autosave = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { problemId, language, answer } = req.body;
+    const { questionId, language, answer } = req.body;
 
-    if (!problemId || answer === undefined) {
+    if (!questionId || answer === undefined) {
       return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
     }
 
-    // Attempt to update the existing answer for this problem
+    // Attempt to update the existing answer for this question
     let result = await submissionModel.findOneAndUpdate(
       {
-        sessionId: sessionId,
-        "answers.problemId": problemId,
-        status: "IN_PROGRESS",
+        _id: sessionId,
+        "answers.questionId": questionId,
+        status: "in-progress",
       },
       {
         $set: {
@@ -34,10 +35,10 @@ const autosave = async (req, res) => {
     // If the answer object doesn't exist in the array yet, push it
     if (!result) {
       result = await submissionModel.findOneAndUpdate(
-        { sessionId: sessionId, status: "IN_PROGRESS" },
+        { _id: sessionId, status: "in-progress" },
         {
           $push: {
-            answers: { problemId, language, answer },
+            answers: { questionId, language, answer },
           },
         },
         { new: true },
@@ -60,36 +61,27 @@ const autosave = async (req, res) => {
   }
 };
 
+
+//responsible for executing the code, grading it against test cases, and permanently recording the score.
 const studentSubmit = async (req, res) => {
   try {
-    // replaced examId and questionId with sessionId since the session is where everything happens
     const { sessionId } = req.params;
-    // replaced studentId with questionId
     const { questionId, language, code } = req.body;
 
-    // Get submission session first to ensure it's active and fetch the examId
     const submission = await submissionModel.findOne({
-      sessionId,
-      status: "IN_PROGRESS",
+      _id: sessionId,
+      status: "in-progress",
     });
+    
     if (!submission) {
-      return res.status(404).json({
-        success: false,
-        message: "Active submission session not found.",
-      });
+      return res.status(404).json({ success: false, message: "Active submission session not found." });
     }
 
     const exam = await examModel.findById(submission.exam);
-    if (!exam)
-      return res
-        .status(404)
-        .json({ success: false, message: "Exam not found" });
+    if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
 
     const question = exam.questions.id(questionId);
-    if (!question)
-      return res
-        .status(404)
-        .json({ success: false, message: "question not found" });
+    if (!question) return res.status(404).json({ success: false, message: "Question not found" });
 
     let testResults = [];
     let passedAll = true;
@@ -97,121 +89,121 @@ const studentSubmit = async (req, res) => {
 
     for (const testCase of question.testCases) {
       const pistonPayload = {
-        language: language, // Must be the string name e.g., 'python', 'javascript'
+        language: language,
         version: "*",
         files: [{ name: "main", content: code }],
-        stdin: testCase.input || "", // Test input
+        stdin: testCase.input || "",
         run_timeout: 3000,
         compile_timeout: 3000,
       };
 
-      const { data } = await axios.post(
-        "http://68.210.224.3/api/v2/execute",
-        pistonPayload,
-      );
+      const { data } = await axios.post("http://68.210.224.3/api/v2/execute", pistonPayload);
 
       const compileCode = data.compile ? data.compile.code : 0;
       const compileOutput = data.compile ? data.compile.output : "";
-
       const runCodeStatus = data.run ? data.run.code : 0;
       const runOutput = data.run ? data.run.output : "";
-
-      const exitCode = data.run ? data.run.code : 1;
 
       const actualOutputClean = runOutput.trim();
       const expectedOutputClean = testCase.expectedOutput.trim();
 
-      const isPassed =
-        compileCode === 0 &&
-        runCodeStatus === 0 &&
-        actualOutputClean === expectedOutputClean;
+      const isPassed = compileCode === 0 && runCodeStatus === 0 && actualOutputClean === expectedOutputClean;
 
-      // Determine exact error message
       let errorMessage = null;
+      let errorType = null; 
+
       if (!isPassed) {
-        if (data.message) errorMessage = data.message;
-        else if (compileCode !== 0)
-          errorMessage = compileOutput; // Give them the compiler trace
-        else if (runCodeStatus !== 0)
-          errorMessage = runOutput; // Give them the runtime crash trace
-        else
-          errorMessage = `Expected: ${expectedOutputClean}, Got: ${actualOutputClean}`; // Logic error
+        passedAll = false; // <-- BUG 2 FIXED: Must flag as failed
+        
+        // Explicit error typing (no string guessing)
+        if (data.message) {
+          errorMessage = data.message;
+          errorType = "System Error";
+        } else if (compileCode !== 0) {
+          errorMessage = compileOutput;
+          errorType = "Compilation Error";
+        } else if (runCodeStatus !== 0) {
+          errorMessage = runOutput;
+          errorType = "Runtime Error";
+        } else {
+          errorMessage = `Expected: ${expectedOutputClean}, Got: ${actualOutputClean}`;
+          errorType = "Wrong Answer";
+        }
       }
-      if (isPassed) totalScore += testCase.points;
+      
+      if (isPassed) totalScore += testCase.points || 1;
 
       testResults.push({
         testCaseId: testCase._id,
         passed: isPassed,
         actualOutput: runOutput,
-        // Piston doesn't give granular ms execution time easily, so we estimate or default to 0
         executionTimeMs: 0,
-        errorMessage: isPassed
-          ? null
-          : errorMessage ||
-            `Expected: ${expectedOutputClean}, Got: ${actualOutputClean}`,
+        errorMessage: isPassed ? null : errorMessage,
+        errorType: errorType // Temporary field for status calculation
       });
     }
 
+    // Determine precise status
     let overallStatus = "Accepted";
     if (!passedAll) {
       const firstError = testResults.find((tr) => !tr.passed);
-      if (
-        firstError.errorMessage &&
-        firstError.errorMessage.includes("compile")
-      ) {
-        overallStatus = "Compilation Error";
-      } else if (
-        firstError.errorMessage &&
-        !firstError.errorMessage.includes("Expected")
-      ) {
-        overallStatus = "Runtime Error";
-      } else {
-        overallStatus = "Wrong Answer";
-      }
+      overallStatus = firstError.errorType; 
     }
 
-    // evaluatedAnswer
+    // Strip the temporary errorType before saving to DB
+    const cleanedTestResults = testResults.map(tr => {
+      const { errorType, ...rest } = tr;
+      return rest;
+    });
+
     const newQuestionSubmission = {
       questionId: questionId,
       language: language,
       code: code,
       status: overallStatus,
-      testResults: testResults,
+      testResults: cleanedTestResults,
       score: totalScore,
     };
 
-    // Remove the old autosaved answer to prevent duplicates, then push the graded one
+    // 1. Remove old draft
     await submissionModel.updateOne(
-      { sessionId: sessionId },
-      { $pull: { answers: { questionId: questionId } } },
+      { _id: sessionId },
+      { $pull: { answers: { questionId: questionId } } }
     );
 
+    // 2. Save new graded result (BUG 1 FIXED: Removed duplicate save)
     await submissionModel.findOneAndUpdate(
-      { sessionId: sessionId },
+      { _id: sessionId },
       {
         $push: { answers: newQuestionSubmission },
-        // Note: isGraded is removed here because evaluating one problem does not mean the entire exam is graded.
         $inc: { totalScore: totalScore },
       },
-      { new: true },
+      { new: true }
     );
+
+    // --- EXAM FEEDBACK MASKING ---
+    const publicResults = cleanedTestResults.filter((tr) => {
+      const originalTestCase = question.testCases.id(tr.testCaseId);
+      return originalTestCase && !originalTestCase.isHidden;
+    });
+
+    let studentFacingStatus = "Submitted Successfully"; 
+    const failedPublicTest = publicResults.find(tr => !tr.passed);
+
+    if (overallStatus === "Compilation Error") {
+      studentFacingStatus = "Compilation Error"; 
+    } else if (failedPublicTest) {
+      studentFacingStatus = "Public Tests Failed";
+    }
 
     res.status(200).json({
       success: true,
-      status: overallStatus,
-      score: totalScore,
-      // Only return results for PUBLIC test cases so students can't cheat the hidden ones
-      results: testResults.filter((tr) => {
-        const originalTestCase = problem.testCases.id(tr.testCaseId);
-        return !originalTestCase.isHidden;
-      }),
+      status: studentFacingStatus, 
+      results: publicResults, 
     });
   } catch (error) {
     console.error("Evaluation Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to evaluate code.",
-    });
+    res.status(500).json({ success: false, message: "Failed to evaluate code." });
   }
 };
 
@@ -220,35 +212,26 @@ const runCode = async (req, res) => {
     const { language, code } = req.body;
 
     const pistonPayload = {
-      language: language, // Must be the string name e.g., 'python', 'javascript'
+      language: language,
       version: "*",
       files: [{ name: "main", content: code }],
       run_timeout: 3000,
       compile_timeout: 3000,
     };
 
-    //const { data } = await axios.post('http://68.210.224.3/api/v2/execute', pistonPayload)
     const { data } = await axios.post(
       "http://127.0.0.1:2000/api/v2/execute",
       pistonPayload,
     );
 
-    // Explicitly check compile vs run status
     const compileCode = data.compile ? data.compile.code : 0;
     const compileOutput = data.compile ? data.compile.output : "";
-
     const runCodeStatus = data.run ? data.run.code : 0;
     const runOutput = data.run ? data.run.output : "";
 
-    const exitCode = data.run ? data.run.code : 1;
-    // It is an error if either compilation or execution fails
     const isError = compileCode !== 0 || runCodeStatus !== 0;
 
-    // If compilation failed, send compileOutput. Otherwise, send runOutput.
-    const actualOutputClean =
-      compileCode !== 0 ? compileOutput.trim() : runOutput.trim();
-
-    // Fallback for edge cases where Piston returns a top-level message (e.g., language not found)
+    const actualOutputClean = compileCode !== 0 ? compileOutput.trim() : runOutput.trim();
     const finalOutput = data.message ? data.message.trim() : actualOutputClean;
 
     res.status(200).json({
@@ -258,10 +241,7 @@ const runCode = async (req, res) => {
     });
   } catch (error) {
     console.error("Execution Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error during code execution.",
-    });
+    res.status(500).json({ success: false, message: "Error during code execution." });
   }
 };
 
@@ -270,10 +250,10 @@ export const finalizeExam = async (req, res) => {
     const { sessionId } = req.params;
     
     const submission = await submissionModel.findOneAndUpdate(
-      { sessionId, status: "IN_PROGRESS" },
+      { _id: sessionId, status: "in-progress" },
       { 
         $set: { 
-          status: "COMPLETED", 
+          status: "submitted", // Must match schema enum
           submittedAt: new Date() 
         } 
       },
@@ -291,40 +271,32 @@ export const finalizeExam = async (req, res) => {
   }
 };
 
-
 const getSubmission = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    let submission = await submissionModel.findOne({ sessionId });
+    let submission = await submissionModel.findOne({ _id: sessionId });
 
     if (!submission) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Submission not found" });
+      return res.status(404).json({ success: false, message: "Submission not found" });
     }
 
-    // LAZY EVALUATION: If the exam is marked IN_PROGRESS but the time has passed
-    if (submission.status === "IN_PROGRESS" && new Date() > submission.endsAt) {
-      // Force it to be completed
+    // LAZY EVALUATION
+    if (submission.status === "in-progress" && new Date() > submission.endsAt) {
       submission = await submissionModel.findOneAndUpdate(
-        { sessionId },
+        { _id: sessionId },
         {
           $set: {
-            status: "COMPLETED",
-            submittedAt: submission.endsAt, // They "submitted" exactly when time ran out
+            status: "submitted", // Must match schema enum
+            submittedAt: submission.endsAt,
           },
         },
         { new: true },
       );
-
-      // Note: You would trigger your auto-grader function here asynchronously
     }
 
     res.status(200).json({ success: true, submission });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error });
+    res.status(500).json({ success: false, message: "Server error", error: error });
   }
 };
 
@@ -332,7 +304,6 @@ const getStudentSubmissions = async (req, res) => {
   try {
     const studentId = req.user.id;
 
-    // pagination for proper loading and efficiency
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;

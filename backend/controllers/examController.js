@@ -48,56 +48,61 @@ const createExam = async (req, res) => {
 };
 
 // READ (Student - Sanitized)
-const getExam = async (req, res) => {
+export const getExam = async (req, res) => {
   try {
     const { examId } = req.params;
-    let query;
+    const userId = req.user.id; 
+    
+    // 1. Fetch the user to get their assigned cohort string
+    // (If your auth middleware already attaches req.user.cohort, you can skip this db call)
+    const currentUser = await userModel.findById(userId);
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: "User not found." });
+    }
 
-    // Determine if the input is a 24-character hex ID or a custom exam code
+    // 2. Find the Exam by _id or examCode
+    let query;
     if (mongoose.Types.ObjectId.isValid(examId)) {
       query = { _id: examId };
     } else {
-      query = { examCode: examId };
+      query = { examCode: examId }; 
     }
 
-    const exam = await examModel.findOne(query).populate("questions").lean();
+    const exam = await examModel.findOne(query).populate('questions').lean();
 
     if (!exam || !exam.isActive) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Exam not found or inactive" });
+      return res.status(404).json({ success: false, message: "Exam not found or inactive." });
     }
 
-    // Sanitize test cases so students cannot see hidden inputs/outputs
-    const sanitizedQuestions = (exam.questions || []).map((question) => {
-      // If the populate failed, `question` is just a Buffer (raw ID), not an object.
-      if (!question || !question._id) {
-        return question;
-      }
+    // --- 3. THE AUTHORIZATION GATEKEEPER ---
+    const isInstructor = exam.createdBy.toString() === userId.toString();
+    
+    // Check if the student's cohort string exists inside the exam's assignedCohorts array
+    // Assuming currentUser.cohort is a string like "CS401"
+    const studentCohort = currentUser.cohort; 
+    let isAssignedStudent = false;
 
-      const cases = question.testCases || question.test_cases || [];
+    if (exam.assignedCohorts && exam.assignedCohorts.length > 0) {
+      // If the exam has specific cohorts, check for a match
+      isAssignedStudent = exam.assignedCohorts.includes(studentCohort);
+    } else {
+      // OPTIONAL: If assignedCohorts is empty, decide if the exam is "open to all" or "locked"
+      // Right now, an empty array means no students can join.
+      isAssignedStudent = false; 
+    }
 
-      const safeTestCases = cases
-        .filter((tc) => !tc.isHidden && !tc.is_hidden)
-        .map((tc) => ({
-          _id: tc._id,
-          input: tc.input,
-        }));
-
-      return {
-        ...question,
-        testCases: safeTestCases,
-      };
-    });
-
-    exam.questions = sanitizedQuestions;
+    if (!isInstructor && !isAssignedStudent) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access Denied: Your cohort is not assigned to this exam." 
+      });
+    }
+    // (Add any testCase masking logic here if needed)
 
     res.status(200).json({ success: true, exam });
   } catch (error) {
     console.error("Get Exam Error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error fetching exam" });
+    res.status(500).json({ success: false, message: "Server error fetching exam" });
   }
 };
 

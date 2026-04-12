@@ -275,28 +275,35 @@ const getAllUsers = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, institution, avatarUrl, cohort } = req.body;
 
-    // Prevent password or role updates through this general route
-    const updateData = { name, institution, avatarUrl, cohort };
+    // 1. Clone req.body to avoid mutating the original request
+    const updateData = { ...req.body };
 
-    // Remove undefined fields so they don't overwrite existing data with null
+    // 2. SECURITY: Explicitly strip out protected fields so they cannot be overwritten
+    const forbiddenFields = ['password', 'role', '_id', 'email', 'name', 'studentId']; 
+    forbiddenFields.forEach((field) => delete updateData[field]);
+
+    // 3. Clean up undefined fields
     Object.keys(updateData).forEach(
-      (key) => updateData[key] === undefined && delete updateData[key],
+      (key) => updateData[key] === undefined && delete updateData[key]
     );
 
+    // 4. Ensure there is actually data left to update
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ success: false, message: "No valid fields provided for update." });
+    }
+
+    // 5. Dynamically update whatever valid fields remain
     const updatedUser = await userModel
       .findByIdAndUpdate(
         userId,
         { $set: updateData },
-        { new: true, runValidators: true },
+        { new: true, runValidators: true }
       )
       .select("-password");
 
     if (!updatedUser) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found." });
+      return res.status(404).json({ success: false, message: "User not found." });
     }
 
     res.status(200).json({
@@ -306,12 +313,9 @@ const updateUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Update User Error:", error.message);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error updating user." });
+    res.status(500).json({ success: false, message: "Server error updating user." });
   }
 };
-
 export const updatePreferences = async (req, res) => {
   try {
     // 1. Get the ID from the verified JWT token
