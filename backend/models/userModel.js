@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
     required: true 
   },
   institution: { type: String },
+  cohort: {type: String, default: "Unassigned"},
   avatarUrl: { type: String },
   bio: {
     type: String,
