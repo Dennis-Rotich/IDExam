@@ -22,6 +22,8 @@ submissionRouter.post('/autosave/:sessionId', verifyToken, autosave);
 // Submit a specific problem for evaluation
 submissionRouter.post('/submit/:sessionId', verifyToken, studentSubmit);
 
+submissionRouter.post('/finalize/:sessionId', verifyToken, finalizeExam);
+
 // Run code without submitting/saving (Dry run)
 submissionRouter.post('/run', runCode);
  
