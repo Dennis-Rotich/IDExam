@@ -10,7 +10,7 @@ import { LoadingExam } from "../Loading/StudentPageLoading";
 import { AutoSaveIndicator } from "../../components/Layout/AutoSaveIndicator";
 import { StudentConsole } from "../../components/Student/StudentConsole";
 import { Timer } from "../../components/Layout/Timer";
-import { Settings, User, HelpCircle, Loader2, CheckCircle, Type, List } from "lucide-react";
+import { Settings, User, HelpCircle, Loader2, CheckCircle, Type, List, X } from "lucide-react";
 import { useExamStore } from "../../store/useExamStore";
 import { EXAM_QUESTIONS } from "../../data/questions";
 import { Button } from "../../components/ui/button";
@@ -18,7 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getExamApi } from "../../api/exam";
 import { startSubmissionApi, runCodeApi, finalizeExamApi, autosaveApi, submitQuestionApi } from "../../api/submission";
 import { socket } from "../../lib/socket";
-import { toast } from "sonner"; // <-- Added for clean UI feedback
+import { toast } from "sonner"; 
 
 export const StudentExam = () => {
   const { examId } = useParams<{ examId: string }>();
@@ -28,7 +28,7 @@ export const StudentExam = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [minPercentage, setMinPercentage] = useState(20);
   const [running, setIsRunning] = useState(false);
-  const [isGrading, setIsGrading] = useState(false); // <-- NEW STATE
+  const [isGrading, setIsGrading] = useState(false); 
   const [examStatus, setExamStatus] = useState<"in-progress" | "submitting" | "completed" | "failed">("in-progress");
   const [examEndTime, setExamEndTime] = useState(new Date(Date.now() + 3600000).toISOString());
   
@@ -36,12 +36,26 @@ export const StudentExam = () => {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isConnected, setIsConnected] = useState(false);
 
+  // --- NEW: Client-Side Settings State ---
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    return (localStorage.getItem("theme") as "light" | "dark") || "dark";
+  });
+
   const currentQuestion = questions[currentQuestionIndex] || EXAM_QUESTIONS[0];
   const isCodingQuestion = currentQuestion?.type === "CODING" || !currentQuestion?.type;
 
+  // --- Apply Theme Changes ---
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
   // --- 1. Exam Initialization & Sockets ---
   useEffect(() => {
-    if (!examId || !user) return; // Guard clause
+    if (!examId || !user) return; 
     
     socket.connect();
     const onConnect = () => {
@@ -75,16 +89,15 @@ export const StudentExam = () => {
            isAttempted: false,
            difficulty: q.difficulty,
            code: q.starterCode?.['python'] || "",
-           language: "python"
+           language: "python" // Default language
         }));
         
         setQuestions(mappedQuestions);
         setCurrentQuestionIndex(0);
       } catch (error: any) {
         console.error("Failed to initialize real exam", error);
-        // Display the actual backend error (e.g., "Access Denied: Your cohort is not assigned...")
         toast.error(error.response?.data?.message || "Failed to load exam environment.");
-        setExamStatus("failed"); // Trigger the failure UI
+        setExamStatus("failed"); 
       }
     };
 
@@ -113,7 +126,7 @@ export const StudentExam = () => {
     }, 2000);
 
     return () => clearTimeout(syncTimer);
-  }, [currentQuestion?.code, answers, currentQuestion?.id, submissionId, isCodingQuestion]);
+  }, [currentQuestion?.code, answers, currentQuestion?.id, submissionId, isCodingQuestion, currentQuestion?.language]);
 
   // --- 3. UI Handlers ---
   useLayoutEffect(() => {
@@ -135,6 +148,17 @@ export const StudentExam = () => {
     setAnswers(prev => ({ ...prev, [currentQuestion.id]: value }));
   };
 
+  // --- NEW: Language Change Handler ---
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newLang = e.target.value;
+    const updatedQuestions = [...questions];
+    updatedQuestions[currentQuestionIndex] = {
+      ...updatedQuestions[currentQuestionIndex],
+      language: newLang
+    };
+    setQuestions(updatedQuestions);
+  };
+
   // --- 4. Exam Finalization (Finish Exam) ---
   const submitExamPayload = async (isAutoSubmit: boolean = false) => {
     if (examStatus !== "in-progress") return; 
@@ -144,7 +168,7 @@ export const StudentExam = () => {
       if (user && submissionId) {
         await finalizeExamApi(submissionId);
       } else {
-        await new Promise(resolve => setTimeout(resolve, 2500)); // Fallback delay
+        await new Promise(resolve => setTimeout(resolve, 2500)); 
       }
       setExamStatus("completed");
     } catch (error) {
@@ -170,7 +194,6 @@ export const StudentExam = () => {
           isError: result.isError
         });
       }
-      // TODO: Feed result.output into your StudentConsole state
     } catch (e) {
       console.error("Execution failed", e);
       toast.error("Code execution failed.");
@@ -179,7 +202,7 @@ export const StudentExam = () => {
     }
   };
 
-  // --- 5B. NEW: Submit Question Handler (Real Grading) ---
+  // --- 5B. Submit Question Handler (Real Grading) ---
   const handleSubmitQuestion = async () => {
     if (!submissionId) return;
     setIsGrading(true);
@@ -191,7 +214,6 @@ export const StudentExam = () => {
         currentQuestion.code || ""
       );
       
-      // Provide clean UI feedback based on the masked backend response
       if (result.success) {
          if (result.status === "Submitted Successfully") {
             toast.success("Code evaluated and saved securely.");
@@ -199,7 +221,6 @@ export const StudentExam = () => {
             toast.error(`Evaluation Result: ${result.status}`);
          }
       }
-      // TODO: Feed result.results (public test outputs) into your StudentConsole state
     } catch (e) {
       console.error("Grading failed", e);
       toast.error("Failed to grade code. Check your connection.");
@@ -209,7 +230,20 @@ export const StudentExam = () => {
   };
 
   // --- 6. Render Logic ---
-  if (isLoading || !questions || questions.length === 0) return <LoadingExam />;
+  if (isLoading || !questions || questions.length === 0) {
+     if (examStatus === "failed") {
+        return (
+          <div className="h-screen bg-background flex flex-col items-center justify-center text-foreground font-sans">
+            <div className="bg-card border border-destructive/30 p-8 rounded-lg max-w-md text-center shadow-xl">
+              <h2 className="text-2xl font-bold mb-2 text-destructive">Access Denied</h2>
+              <p className="text-muted-foreground mb-6 text-sm">Failed to load the exam environment. You may not be assigned to this cohort, or the exam is inactive.</p>
+              <Button variant="secondary" onClick={() => window.location.href = "/student/"}>Return to Dashboard</Button>
+            </div>
+          </div>
+        );
+     }
+     return <LoadingExam />;
+  }
 
   if (examStatus === "submitting" || examStatus === "completed") {
     return (
@@ -234,6 +268,51 @@ export const StudentExam = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground font-sans">
+      
+      {/* --- SETTINGS MODAL OVERLAY --- */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-lg shadow-xl w-full max-w-sm p-6 relative animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setIsSettingsOpen(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+              <Settings size={20} /> Exam Settings
+            </h3>
+            
+            <div className="space-y-6">
+              {/* Theme Toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Interface Theme</span>
+                <div className="flex bg-muted rounded-md p-1 border border-border">
+                  <button 
+                    onClick={() => setTheme("light")}
+                    className={`px-3 py-1 text-xs font-medium rounded ${theme === "light" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Light
+                  </button>
+                  <button 
+                    onClick={() => setTheme("dark")}
+                    className={`px-3 py-1 text-xs font-medium rounded ${theme === "dark" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Dark
+                  </button>
+                </div>
+              </div>
+              
+              {/* Future setting placeholder */}
+              <div className="flex items-center justify-between opacity-50 cursor-not-allowed">
+                <span className="text-sm font-medium">Editor Font Size</span>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">14px (Locked)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav className="h-12 border-b border-border bg-card flex items-center px-4 justify-between">
         <div className="flex items-center gap-4 text-sm font-medium">
           <span className="text-[#00a3a3] font-bold tracking-tighter">tAhIni</span>
@@ -243,7 +322,12 @@ export const StudentExam = () => {
         <div className="flex items-center gap-6">
           <Timer endsAt={examEndTime} onTimeUp={handleTimeUp} />
           <div className="flex items-center gap-3 text-muted-foreground">
-            <Settings size={18} className="hover:text-foreground cursor-pointer transition-colors" />
+            {/* --- CLICKABLE SETTINGS BUTTON --- */}
+            <Settings 
+              size={18} 
+              className="hover:text-foreground cursor-pointer transition-colors" 
+              onClick={() => setIsSettingsOpen(true)}
+            />
             <User size={18} className="hover:text-foreground cursor-pointer transition-colors" />
           </div>
         </div>
@@ -296,8 +380,20 @@ export const StudentExam = () => {
               <ResizablePanelGroup orientation="vertical">
                 <ResizablePanel defaultSize={70} className="flex flex-col overflow-hidden">
                   <div className="h-10 border-b border-border px-4 flex items-center justify-between bg-muted/50 text-xs">
-                    <span className="text-primary font-mono">{currentQuestion.language || "python"}</span>
-                    <HelpCircle size={14} className="text-muted-foreground" />
+                    
+                    {/* --- NEW: LANGUAGE SELECTOR DROPDOWN --- */}
+                    <div className="flex items-center gap-2">
+                      <select 
+                        value={currentQuestion.language || "python"}
+                        onChange={handleLanguageChange}
+                        className="bg-transparent text-primary font-mono text-xs outline-none cursor-pointer hover:bg-muted p-1 rounded border border-transparent hover:border-border transition-colors"
+                      >
+                        <option value="python">python</option>
+                        <option value="javascript">javascript</option>
+                      </select>
+                    </div>
+
+                    <HelpCircle size={14} className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
                   </div>
                   <div className="flex-1 relative">
                     <MonacoInstance />
@@ -383,7 +479,6 @@ export const StudentExam = () => {
         </ResizablePanelGroup>
       </main>
 
-      {/* --- 7. UPDATED FOOTER UI --- */}
       <footer className="h-12 bg-card border-t border-border px-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <AutoSaveIndicator />
@@ -391,12 +486,10 @@ export const StudentExam = () => {
         <div className="flex gap-2">
           {isCodingQuestion && (
             <>
-              {/* Dry Run Button */}
               <Button variant="secondary" onClick={handleRunCode} disabled={running || isGrading} className="h-8 px-4 text-xs font-medium">
                 {running ? <Loader2 size={14} className="animate-spin" /> : "Run"}
               </Button>
               
-              {/* Real Grading Button */}
               <Button variant="outline" onClick={handleSubmitQuestion} disabled={running || isGrading} className="h-8 px-4 text-xs font-medium border-primary text-primary hover:bg-primary/10">
                 {isGrading ? <Loader2 size={14} className="animate-spin mr-2" /> : null}
                 Submit Code
@@ -404,7 +497,6 @@ export const StudentExam = () => {
             </>
           )}
           
-          {/* Finalize Entire Exam Button */}
           <Button onClick={() => submitExamPayload(false)} className="h-8 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold ml-4">
             Finish Exam
           </Button>
