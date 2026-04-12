@@ -4,7 +4,8 @@ import {
     runCode, 
     autosave, 
     getSubmission, 
-    getStudentSubmissions
+    getStudentSubmissions,
+    finalizeExam
 } from "../controllers/submissionController.js";
 import { verifyToken } from "../middlewares/auth.js";
 
