@@ -68,7 +68,7 @@ questionSchema.pre('save', async function() {
     const counterDoc = await counter.findByIdAndUpdate(
       { _id: 'question_display_id' },
       { $inc: { seq: 1 } },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     
     this.displayId = counterDoc.seq;
