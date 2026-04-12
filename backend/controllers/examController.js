@@ -258,32 +258,35 @@ const getExamForEdit = async (req, res) => {
 // UPDATE
 const updateExam = async (req, res) => {
   try {
-    const { title, durationInMinutes, problems, isActive } = req.body;
-    const examId = req.params.examId;
+    const { examId } = req.params;
+    
+    // 1. Clone the request body
+    const updateData = { ...req.body };
 
-    const exam = await examModel.findById(examId);
-    if (!exam) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Exam not found" });
+    // 2. SECURITY: Prevent instructors from hijacking ownership or changing the ID
+    const forbiddenFields = ['_id', 'createdBy'];
+    forbiddenFields.forEach((field) => delete updateData[field]);
+
+    // 3. Clean up undefined fields to prevent accidental null overwrites
+    Object.keys(updateData).forEach(
+      (key) => updateData[key] === undefined && delete updateData[key]
+    );
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ success: false, message: "No valid fields provided for update." });
     }
 
-    // Authorization Check
-    if (
-      exam.createdBy.toString() !== req.user.id &&
-      req.user.role !== "admin"
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Forbidden: You cannot edit this exam.",
-      });
-    }
-
+    // 4. Update the document dynamically
     const updatedExam = await examModel.findByIdAndUpdate(
       examId,
-      { $set: { title, durationInMinutes, problems, isActive } },
-      { new: true, runValidators: true },
+      { $set: updateData },
+      // Note: using returnDocument: 'after' to avoid the Mongoose deprecation warning
+      { returnDocument: 'after', runValidators: true }
     );
+
+    if (!updatedExam) {
+      return res.status(404).json({ success: false, message: "Exam not found." });
+    }
 
     res.status(200).json({
       success: true,
@@ -292,7 +295,7 @@ const updateExam = async (req, res) => {
     });
   } catch (error) {
     console.error("Update Exam Error:", error);
-    res.status(500).json({ success: false, message: "Failed to update exam" });
+    res.status(500).json({ success: false, message: "Server error updating exam." });
   }
 };
 
