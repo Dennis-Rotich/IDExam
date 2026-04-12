@@ -17,7 +17,11 @@ const server = http.createServer(app);
 
 // Enable CORS for Socket.io
 const io = new Server(server, {
-    cors: { origin: "*" } 
+  cors: {
+    origin: "https://idexam.duckdns.org", // MUST match the frontend URL exactly
+    methods: ["GET", "POST"],
+    credentials: true
+  }
 });
 
 connectDB();
