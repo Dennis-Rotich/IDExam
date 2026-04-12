@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import 'dotenv/config';
 import cors from 'cors';
 import connectDB from './config/mongodb.js';
 import examRouter from './routes/examRoute.js';
@@ -146,6 +146,7 @@ io.on('connection', (socket) => {
         }
     });
 });
+
 
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
