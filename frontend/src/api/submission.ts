@@ -1,6 +1,6 @@
 // api/submission.ts
 import { apiClient } from "../lib/axiosApi";
-import {type SubmissionResponse, type SubmissionsListResponse, type AnswerSubmission } from "../types/submission";
+import { type SubmissionResponse, type SubmissionsListResponse } from "../types/submission";
 
 // STUDENT ACTIONS
 // Start a new exam session (creates the initial Submission document)
@@ -14,31 +14,39 @@ export const startSubmissionApi = async (examId: string): Promise<SubmissionResp
     }
 };
 
-// Autosave progress (updates the 'answers' array dynamically)
-export const autosaveAnswersApi = async (
-    submissionId: string, 
-    answers: Partial<AnswerSubmission>[]
-): Promise<{ success: boolean; message: string }> => {
+// For the "Run" button (Dry run)
+export const runCodeApi = async (language: string, code: string) => {
+    const response = await apiClient.post(`/submission/run`, { language, code });
+    return response.data;
+};
+
+// For auto-syncing every few seconds
+export const autosaveApi = async (sessionId: string, questionId: string, language: string, answer: string) => {
+    const response = await apiClient.post(`/submission/autosave/${sessionId}`, { questionId, language, answer });
+    return response.data;
+};
+
+// For the final "Finish Exam" button
+export const finalizeExamApi = async (sessionId: string) => {
+    const response = await apiClient.post(`/submission/finalize/${sessionId}`);
+    return response.data;
+};
+
+// NEW: Submit a specific question for actual grading
+export const submitQuestionApi = async (
+    sessionId: string, 
+    questionId: string,
+    language: string,
+    code: string
+): Promise<any> => {
     try {
-        // We typically don't need the full object back on a silent autosave, just a success ping
-        const response = await apiClient.put<{ success: boolean; message: string }>(
-            `/submission/${submissionId}/autosave`, 
-            { answers }
+        const response = await apiClient.post(
+            `/submission/submit/${sessionId}`, 
+            { questionId, language, code }
         );
         return response.data;
     } catch (error) {
-        console.error("Autosave API error:", error);
-        throw error;
-    }
-};
-
-// Finalize and submit the exam
-export const submitExamApi = async (submissionId: string): Promise<SubmissionResponse> => {
-    try {
-        const response = await apiClient.post<SubmissionResponse>(`/submission/${submissionId}/submit`);
-        return response.data;
-    } catch (error) {
-        console.error("Submit Exam API error:", error);
+        console.error("Submit Question API error:", error);
         throw error;
     }
 };
@@ -55,7 +63,6 @@ export const getStudentSubmissionApi = async (submissionId: string): Promise<Sub
 };
 
 // INSTRUCTOR ACTIONS
-// Fetch all submissions for a specific exam (for grading/review)
 export const getExamSubmissionsApi = async (examId: string): Promise<SubmissionsListResponse> => {
     try {
         const response = await apiClient.get<SubmissionsListResponse>(`/submission/exam/${examId}`);
@@ -66,7 +73,6 @@ export const getExamSubmissionsApi = async (examId: string): Promise<Submissions
     }
 };
 
-// Fetch all submissions for the currently logged-in student (with pagination)
 export const getStudentSubmissionsApi = async (page = 1, limit = 10): Promise<any> => {
     try {
         const response = await apiClient.get(`/submission/student/me?page=${page}&limit=${limit}`);

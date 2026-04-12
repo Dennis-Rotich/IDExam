@@ -57,6 +57,7 @@ export interface Question {
   correctAnswer?: string | number | boolean; 
   isPracticeAvailable?: boolean;
   createdBy?: string | User;
+  updatedAt?: string;
 }
 
 export interface Exam {

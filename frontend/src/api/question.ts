@@ -2,8 +2,13 @@ import { apiClient } from "../lib/axiosApi";
 import { type Question } from "../types/exam"; // Your newly updated interface
 
 export const getInstructorQuestionsApi = async () => {
-  const response = await apiClient.get("/question/instructor"); // Or whatever your route is
+  const response = await apiClient.get("/question/instructor"); 
   return response.data.data || response.data.questions || response.data;
+};
+
+export const getQuestionApi = async (id: string) => {
+  const response = await apiClient.get(`/question/${id}`);
+  return response.data;
 };
 
 export const createQuestionApi = async (questionData: Partial<Question>) => {

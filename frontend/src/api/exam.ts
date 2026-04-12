@@ -2,7 +2,6 @@ import { apiClient } from "../lib/axiosApi";
 import { type Exam, type ExamResponse, type ExamsListResponse } from "../types/exam";
 import { type BrowseTest } from "../types/exam";
 
-
 // CREATE
 export const createExamApi = async (examData: Partial<Exam>): Promise<{success: boolean; message: string; examId: string}> => {
     try {
