@@ -23,6 +23,26 @@ export const createQuestion = async (req, res) => {
   }
 };
 
+export const getQuestion = async (req, res) => {
+  try {
+    const questionId = req.params.id;
+
+    const question = await questionModel.findById(questionId);
+
+    if (!question) {
+      return res.status(404).json({ success: false, message: "Question not found" });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: question,
+    });
+  } catch (error) {
+    console.error("Get Question Error:", error);
+    res.status(500).json({ success: false, message: error.message || "Server error getting question." });
+  }
+};
+
 // @desc    Get all questions (with optional filtering for 'My Questions')
 export const getInstructorQuestions = async (req, res) => {
   try {

@@ -50,10 +50,17 @@ const createExam = async (req, res) => {
 // READ (Student - Sanitized)
 const getExam = async (req, res) => {
   try {
-    const exam = await examModel
-      .findById(req.params.examId)
-      .populate("questions")
-      .lean();
+    const { examId } = req.params;
+    let query;
+
+    // Determine if the input is a 24-character hex ID or a custom exam code
+    if (mongoose.Types.ObjectId.isValid(examId)) {
+      query = { _id: examId };
+    } else {
+      query = { examCode: examId };
+    }
+
+    const exam = await examModel.findOne(query).populate("questions").lean();
 
     if (!exam || !exam.isActive) {
       return res
