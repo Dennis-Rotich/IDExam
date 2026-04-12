@@ -6,8 +6,8 @@ import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
 import { createExamApi } from '../../api/exam';
-import { generateExamCode } from '@/utils/string';
-
+import { generateExamCode } from '../../utils/string';
+  
 // --- MOCK DATA (Replace with API call to your Question collection) ---
 const MOCK_BANK = [
   { _id: 'q1', title: 'What is the time complexity of QuickSort?', type: 'Multiple Choice', points: 2 },

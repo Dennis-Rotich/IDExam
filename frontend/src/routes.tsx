@@ -31,6 +31,7 @@ import { AdminAuditLogPage } from "./pages/Admin/Audit";
 import { AdminAnnouncementsPage } from "./pages/Admin/Announcements";
 import { AdminSystemDocsPage } from "./pages/Admin/AdminSystemDocs";
 import { AdminAuth } from "./pages/Auth/AdminAuth";
+import CreateExam from "./pages/Instructor/CreateExam";
 
 const MainRoutes = () => {
   const routes = [
@@ -176,6 +177,10 @@ const MainRoutes = () => {
             {
               path: "exams",
               element: <InstructorTestsPage />,
+            },
+            {
+              path: "exams/new",
+              element: <CreateExam />,
             },
             {
               path: "exam/submission/review/:examId",
