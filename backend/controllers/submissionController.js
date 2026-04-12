@@ -1,5 +1,6 @@
 import submissionModel from "../models/submissionModel.js";
 import examModel from "../models/examModel.js";
+import questionModel from '../models/questionModel.js';
 import axios from "axios";
 
 export const startSubmission = async (req, res) => {
@@ -107,7 +108,7 @@ const autosave = async (req, res) => {
 
 
 //responsible for executing the code, grading it against test cases, and permanently recording the score.
-const studentSubmit = async (req, res) => {
+export const studentSubmit = async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { questionId, language, code } = req.body;
@@ -121,10 +122,9 @@ const studentSubmit = async (req, res) => {
       return res.status(404).json({ success: false, message: "Active submission session not found." });
     }
 
-    const exam = await examModel.findById(submission.exam);
-    if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
-
-    const question = exam.questions.id(questionId);
+    // Query the Question collection directly. 
+    // This guarantees we have the testCases array and don't have to worry about populate().
+    const question = await questionModel.findById(questionId);
     if (!question) return res.status(404).json({ success: false, message: "Question not found" });
 
     let testResults = [];
@@ -133,7 +133,7 @@ const studentSubmit = async (req, res) => {
 
     for (const testCase of question.testCases) {
       const pistonPayload = {
-        language: language,
+        language: language === "javascript" ? "js" : language, // Safely handle JS
         version: "*",
         files: [{ name: "main", content: code }],
         stdin: testCase.input || "",
@@ -157,9 +157,8 @@ const studentSubmit = async (req, res) => {
       let errorType = null; 
 
       if (!isPassed) {
-        passedAll = false; // <-- BUG 2 FIXED: Must flag as failed
+        passedAll = false; 
         
-        // Explicit error typing (no string guessing)
         if (data.message) {
           errorMessage = data.message;
           errorType = "System Error";
@@ -183,18 +182,16 @@ const studentSubmit = async (req, res) => {
         actualOutput: runOutput,
         executionTimeMs: 0,
         errorMessage: isPassed ? null : errorMessage,
-        errorType: errorType // Temporary field for status calculation
+        errorType: errorType 
       });
     }
 
-    // Determine precise status
     let overallStatus = "Accepted";
     if (!passedAll) {
       const firstError = testResults.find((tr) => !tr.passed);
       overallStatus = firstError.errorType; 
     }
 
-    // Strip the temporary errorType before saving to DB
     const cleanedTestResults = testResults.map(tr => {
       const { errorType, ...rest } = tr;
       return rest;
@@ -209,13 +206,11 @@ const studentSubmit = async (req, res) => {
       score: totalScore,
     };
 
-    // 1. Remove old draft
     await submissionModel.updateOne(
       { _id: sessionId },
       { $pull: { answers: { questionId: questionId } } }
     );
 
-    // 2. Save new graded result (BUG 1 FIXED: Removed duplicate save)
     await submissionModel.findOneAndUpdate(
       { _id: sessionId },
       {
@@ -225,9 +220,9 @@ const studentSubmit = async (req, res) => {
       { returnDocument: 'after' } 
     );
 
-    // --- EXAM FEEDBACK MASKING ---
+    // Standard JS array finding instead of Mongoose .id() 
     const publicResults = cleanedTestResults.filter((tr) => {
-      const originalTestCase = question.testCases.id(tr.testCaseId);
+      const originalTestCase = question.testCases.find(tc => tc._id.toString() === tr.testCaseId.toString());
       return originalTestCase && !originalTestCase.isHidden;
     });
 
