@@ -12,7 +12,7 @@ export function ExamAuth() {
   const content = useOutletContext<any>();
   const { logIn, isLoading } = useAuth();
   const navigate = useNavigate();
-
+  
   const [identifier, setIdentifier] = useState("");
   const [examCode, setExamCode] = useState("");
   const [password, setPassword] = useState("");
