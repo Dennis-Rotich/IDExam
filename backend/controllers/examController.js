@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import examModel from "../models/examModel.js";
 import userModel from "../models/userModel.js";
 import submissionModel from "../models/submissionModel.js";
