@@ -62,10 +62,10 @@ const autosave = async (req, res) => {
 
 const studentSubmit = async (req, res) => {
   try {
-    // replaced examId and problemId with sessionId since the session is where everything happens
+    // replaced examId and questionId with sessionId since the session is where everything happens
     const { sessionId } = req.params;
-    // replaced studentId with problemId
-    const { problemId, language, code } = req.body;
+    // replaced studentId with questionId
+    const { questionId, language, code } = req.body;
 
     // Get submission session first to ensure it's active and fetch the examId
     const submission = await submissionModel.findOne({
@@ -85,17 +85,17 @@ const studentSubmit = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Exam not found" });
 
-    const problem = exam.problems.id(problemId);
-    if (!problem)
+    const question = exam.questions.id(questionId);
+    if (!question)
       return res
         .status(404)
-        .json({ success: false, message: "Problem not found" });
+        .json({ success: false, message: "question not found" });
 
     let testResults = [];
     let passedAll = true;
     let totalScore = 0;
 
-    for (const testCase of problem.testCases) {
+    for (const testCase of question.testCases) {
       const pistonPayload = {
         language: language, // Must be the string name e.g., 'python', 'javascript'
         version: "*",
@@ -171,8 +171,8 @@ const studentSubmit = async (req, res) => {
     }
 
     // evaluatedAnswer
-    const newProblemSubmission = {
-      problemId: problemId,
+    const newQuestionSubmission = {
+      questionId: questionId,
       language: language,
       code: code,
       status: overallStatus,
@@ -183,13 +183,13 @@ const studentSubmit = async (req, res) => {
     // Remove the old autosaved answer to prevent duplicates, then push the graded one
     await submissionModel.updateOne(
       { sessionId: sessionId },
-      { $pull: { answers: { problemId: problemId } } },
+      { $pull: { answers: { questionId: questionId } } },
     );
 
     await submissionModel.findOneAndUpdate(
       { sessionId: sessionId },
       {
-        $push: { answers: evaluatedAnswer },
+        $push: { answers: newQuestionSubmission },
         // Note: isGraded is removed here because evaluating one problem does not mean the entire exam is graded.
         $inc: { totalScore: totalScore },
       },
@@ -265,7 +265,33 @@ const runCode = async (req, res) => {
   }
 };
 
-//
+export const finalizeExam = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const submission = await submissionModel.findOneAndUpdate(
+      { sessionId, status: "IN_PROGRESS" },
+      { 
+        $set: { 
+          status: "COMPLETED", 
+          submittedAt: new Date() 
+        } 
+      },
+      { new: true }
+    );
+
+    if (!submission) {
+      return res.status(404).json({ success: false, message: "Active session not found or already submitted." });
+    }
+
+    res.status(200).json({ success: true, message: "Exam finalized successfully." });
+  } catch (error) {
+    console.error("Finalize Exam Error:", error);
+    res.status(500).json({ success: false, message: "Failed to finalize exam." });
+  }
+};
+
+
 const getSubmission = async (req, res) => {
   try {
     const { sessionId } = req.params;
