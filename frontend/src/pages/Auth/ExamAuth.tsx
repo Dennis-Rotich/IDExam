@@ -13,7 +13,6 @@ export function ExamAuth() {
   const { logIn, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Controlled inputs
   const [identifier, setIdentifier] = useState("");
   const [examCode, setExamCode] = useState("");
   const [password, setPassword] = useState("");
@@ -24,17 +23,20 @@ export function ExamAuth() {
     setIsVerifying(true);
 
     try {
-      // 1. Authenticate the student using standard credentials
       await logIn({ identifier, password });
-
-      // 2. Verify the Exam Code actually exists and is active
+      
       const examRes = await getExamApi(examCode);
+      
+      // Defensively check if the backend returned the exam object correctly
+      if (!examRes || !examRes.exam || !examRes.exam._id) {
+        throw new Error("Invalid exam response format from server.");
+      }
 
       toast.success("Identity verified. Launching environment.");
-      navigate(`/exam/${examRes.exam._id}`);
+      navigate(`/exam/${examRes.exam._id}`); // Always navigate using the internal _id
     } catch (error: any) {
       console.error("Authentication error:", error);
-      toast.error(error.response?.data?.message || "Invalid credentials or inactive exam code.");
+      toast.error(error.response?.data?.message || error.message || "Invalid credentials or inactive exam code.");
     } finally {
       setIsVerifying(false);
     }
@@ -44,7 +46,6 @@ export function ExamAuth() {
 
   return (
     <div className="w-full space-y-8 flex flex-col items-center">
-      {/* Mobile Header (Hidden on Desktop) */}
       <div className="flex lg:hidden justify-center gap-2 mb-8">
         <span className="text-xl font-bold tracking-tighter text-slate-900">
           IDE<span className="text-[#00a3a3]">xam</span>
@@ -88,7 +89,7 @@ export function ExamAuth() {
             type="text"
             value={examCode}
             onChange={(e) => setExamCode(e.target.value)}
-            placeholder="e.g. 64f1a2b3c4d5" // Suggesting MongoDB ObjectId format
+            placeholder="CS401-SP26" // Changed to match your unique examCode schema
             required
             className="bg-slate-50 border-slate-200 focus-visible:ring-[#00a3a3]"
           />
@@ -103,7 +104,7 @@ export function ExamAuth() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Your portal password"
+            placeholder=""
             required
             className="bg-slate-50 border-slate-200 focus-visible:ring-[#00a3a3]"
           />
@@ -121,16 +122,6 @@ export function ExamAuth() {
           )}
         </Button>
       </form>
-
-      <div className="text-center text-sm">
-        <span className="text-slate-500">Having trouble authenticating? </span>
-        <a
-          href="#"
-          className="font-medium text-[#00a3a3] hover:text-[#008a8a] transition-colors"
-        >
-          Contact Proctor
-        </a>
-      </div>
     </div>
   );
 }
