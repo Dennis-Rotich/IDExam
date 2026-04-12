@@ -1,12 +1,12 @@
-// lib/socket.ts
 import { io } from "socket.io-client";
 
-// Define your production backend URL
-const SOCKET_URL = "https://idexam.duckdns.org";
+// Vite uses import.meta.env instead of process.env
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 
-// Initialize the socket but do NOT auto-connect yet.
-// We only want it to connect when a user actually enters an exam room.
 export const socket = io(SOCKET_URL, {
-    transports: ["websocket"],
-    autoConnect: false, 
+  autoConnect: false,
+  // Socket.io automatically appends "/socket.io/" to the URL you provide, 
+  // which perfectly matches the Nginx location block we just created.
+  path: "/socket.io/", 
+  transports: ["websocket", "polling"],
 });
