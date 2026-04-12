@@ -1,9 +1,10 @@
 import express from "express";
 import {
   createQuestion,
-  getInstructorQuestions,
+  getInstructorQuestions, 
   updateQuestion,
   deleteQuestion,
+  getQuestion
 } from "../controllers/questionController.js";
 import { verifyToken, isAdmin, isTeacher } from "../middlewares/auth.js";
 
@@ -17,6 +18,8 @@ questionRouter.get(
   isTeacher,
   getInstructorQuestions,
 );
+
+questionRouter.get("/:id", verifyToken, isTeacher, getQuestion);
 
 questionRouter.put("/:id", verifyToken, isTeacher, updateQuestion);
 
