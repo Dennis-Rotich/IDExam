@@ -48,7 +48,7 @@ const createExam = async (req, res) => {
 };
 
 // READ (Student - Sanitized)
-export const getExam = async (req, res) => {
+const getExam = async (req, res) => {
   try {
     const { examId } = req.params;
     const userId = req.user.id; 
