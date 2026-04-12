@@ -17,7 +17,7 @@ const createExam = async (req, res) => {
       instructions,
       aiProctoringEnabled,
       aiGradingEnabled,
-      assignedCohorts
+      assignedCohorts,
     } = req.body;
 
     const newExam = new examModel({
@@ -36,13 +36,11 @@ const createExam = async (req, res) => {
     });
 
     await newExam.save();
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Exam created successfully!",
-        examId: newExam._id,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Exam created successfully!",
+      examId: newExam._id,
+    });
   } catch (error) {
     console.error("Create Exam Error:", error);
     res.status(500).json({ success: false, message: "Failed to create exam" });
@@ -62,7 +60,9 @@ const getExam = async (req, res) => {
 
     // Sanitize test cases so students cannot see hidden inputs/outputs
     const sanitizedQuestions = exam.questions.map((question) => {
-      const safeTestCases = question.testCases
+      // fallback logic above so that a single bad database entry doesn't take down the Student IDE
+      const cases = question.testCases || question.test_cases || [];
+      const safeTestCases = cases
         .filter((tc) => !tc.isHidden)
         .map((tc) => ({
           _id: tc._id,
@@ -218,12 +218,10 @@ const getExamForEdit = async (req, res) => {
       exam.createdBy.toString() !== req.user.id &&
       req.user.role !== "admin"
     ) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Forbidden: You do not own this exam.",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: You do not own this exam.",
+      });
     }
 
     res.status(200).json({ success: true, exam });
@@ -253,12 +251,10 @@ const updateExam = async (req, res) => {
       exam.createdBy.toString() !== req.user.id &&
       req.user.role !== "admin"
     ) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Forbidden: You cannot edit this exam.",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: You cannot edit this exam.",
+      });
     }
 
     const updatedExam = await examModel.findByIdAndUpdate(
@@ -267,13 +263,11 @@ const updateExam = async (req, res) => {
       { new: true, runValidators: true },
     );
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Exam updated successfully.",
-        exam: updatedExam,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Exam updated successfully.",
+      exam: updatedExam,
+    });
   } catch (error) {
     console.error("Update Exam Error:", error);
     res.status(500).json({ success: false, message: "Failed to update exam" });
@@ -283,12 +277,18 @@ const updateExam = async (req, res) => {
 const addQuestionToExam = async (req, res) => {
   try {
     const examId = req.params.examId;
-    
+
     // 1. Verify Exam exists and User is authorized
     const exam = await examModel.findById(examId);
-    if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
-    
-    if (exam.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
+    if (!exam)
+      return res
+        .status(404)
+        .json({ success: false, message: "Exam not found" });
+
+    if (
+      exam.createdBy.toString() !== req.user.id &&
+      req.user.role !== "admin"
+    ) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
 
@@ -296,9 +296,9 @@ const addQuestionToExam = async (req, res) => {
     const newQuestion = new questionModel({
       ...req.body, // title, difficulty, points, test_cases, etc.
       examId: exam._id,
-      createdBy: req.user.id 
+      createdBy: req.user.id,
     });
-    
+
     const savedQuestion = await newQuestion.save();
 
     // FIX: Initialize the array if it's undefined (legacy document handling)
@@ -313,9 +313,8 @@ const addQuestionToExam = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Question added successfully.",
-      question_id: savedQuestion._id
+      question_id: savedQuestion._id,
     });
-
   } catch (error) {
     console.error("Add Question Error:", error);
     res.status(500).json({ success: false, message: "Failed to add question" });
@@ -339,12 +338,10 @@ const deleteExam = async (req, res) => {
       exam.createdBy.toString() !== req.user.id &&
       req.user.role !== "admin"
     ) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Forbidden: You cannot delete this exam.",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: You cannot delete this exam.",
+      });
     }
 
     await examModel.findByIdAndDelete(examId);
