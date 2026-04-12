@@ -1,5 +1,6 @@
 import express from 'express';
 import { 
+    startSubmission,
     studentSubmit, 
     runCode, 
     autosave, 
@@ -10,6 +11,9 @@ import {
 import { verifyToken } from "../middlewares/auth.js";
 
 const submissionRouter = express.Router();
+
+//Start or Resume an exam session
+submissionRouter.post('/start', verifyToken, startSubmission);
 
 // Fetch a specific submission session
 submissionRouter.get('/:sessionId', verifyToken, getSubmission);
