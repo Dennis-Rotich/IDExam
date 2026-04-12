@@ -2,6 +2,50 @@ import submissionModel from "../models/submissionModel.js";
 import examModel from "../models/examModel.js";
 import axios from "axios";
 
+export const startSubmission = async (req, res) => {
+  try {
+    const { examId } = req.body;
+    const studentId = req.user.id; 
+
+    // 1. Fetch the exam to get the duration limit
+    const exam = await examModel.findById(examId);
+    if (!exam || !exam.isActive) {
+      return res.status(404).json({ success: false, message: "Exam not found or inactive." });
+    }
+
+    // 2. RESUME LOGIC: Check if the student already has a session for this exam
+    let submission = await submissionModel.findOne({
+      exam: examId,
+      student: studentId
+    });
+
+    if (submission) {
+      // If they already started, just return the existing session so they can resume
+      return res.status(200).json({ success: true, submission });
+    }
+
+    // 3. NEW SESSION: Calculate the exact end time based on exam duration
+    const startedAt = new Date();
+    const endsAt = new Date(startedAt.getTime() + exam.durationInMinutes * 60000);
+
+    // 4. Create the blank submission document in MongoDB
+    submission = await submissionModel.create({
+      exam: examId,
+      student: studentId,
+      startedAt: startedAt,
+      endsAt: endsAt,
+      status: "in-progress",
+      answers: [],
+      proctoringFlags: []
+    });
+
+    res.status(200).json({ success: true, submission });
+  } catch (error) {
+    console.error("Start Submission Error:", error);
+    res.status(500).json({ success: false, message: "Failed to start exam session." });
+  }
+};
+
 // to handle frequent API saves - a quiet, background operation designed to prevent data loss. 
 // It fires frequently (e.g., every 2 seconds after the student stops typing) to ensure that if their browser crashes, 
 // their text or code is safely stored in the database.
