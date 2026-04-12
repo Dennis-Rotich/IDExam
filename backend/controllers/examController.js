@@ -32,7 +32,7 @@ const createExam = async (req, res) => {
       availableUntil,
       aiProctoringEnabled,
       aiGradingEnabled,
-      assignedCohorts
+      assignedCohorts,
     });
 
     await newExam.save();
@@ -61,20 +61,20 @@ const getExam = async (req, res) => {
     }
 
     // Sanitize test cases so students cannot see hidden inputs/outputs
-    const sanitizedProblems = exam.problems.map((problem) => {
-      const safeTestCases = problem.testCases
+    const sanitizedQuestions = exam.questions.map((question) => {
+      const safeTestCases = question.testCases
         .filter((tc) => !tc.isHidden)
         .map((tc) => ({
           _id: tc._id,
           input: tc.input,
         }));
       return {
-        ...problem,
+        ...question,
         testCases: safeTestCases,
       };
     });
 
-    exam.problems = sanitizedProblems;
+    exam.questions = sanitizedQuestions;
 
     res.status(200).json({ success: true, exam });
   } catch (error) {
@@ -295,7 +295,8 @@ const addQuestionToExam = async (req, res) => {
     // 2. Create the Question, attaching the examId
     const newQuestion = new questionModel({
       ...req.body, // title, difficulty, points, test_cases, etc.
-      examId: exam._id 
+      examId: exam._id,
+      createdBy: req.user.id 
     });
     
     const savedQuestion = await newQuestion.save();
