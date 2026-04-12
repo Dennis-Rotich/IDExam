@@ -21,11 +21,13 @@ const questionSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ["CODING", "MULTIPLE_CHOICE", "TRUE_FALSE", "SHORT_ANSWER"], 
+    default: "CODING",
     required: true,
   },
   difficulty: { 
     type: String, 
     enum: ["Easy", "Medium", "Hard"],
+    default: "Medium",
     required: true
   },
   // --- Practice Dashboard Sorting ---
@@ -58,12 +60,12 @@ const questionSchema = new mongoose.Schema({
 
 // Add a pre-save hook to auto-increment the `displayId` 
 // so that questions can automatically number themselves like LeetCode.
-questionSchema.pre('save', async function(next) {
+questionSchema.pre('save', async function() {
   if (this.isNew && !this.displayId) {
     const lastQuestion = await this.constructor.findOne({}, {}, { sort: { displayId: -1 } });
     this.displayId = lastQuestion && lastQuestion.displayId ? lastQuestion.displayId + 1 : 1;
   }
-  next();
+  //next();
 });
 
 const questionModel = mongoose.models.question || mongoose.model("question", questionSchema);
