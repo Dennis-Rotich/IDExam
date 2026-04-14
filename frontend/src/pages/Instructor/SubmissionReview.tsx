@@ -1,39 +1,125 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, XCircle, Clock, AlertTriangle, Save, AlignLeft, Code2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useParams } from "react-router-dom";
+import { 
+  ArrowLeft, CheckCircle2, XCircle, Clock, AlertTriangle, 
+  Save, AlignLeft, Code2, Loader2 
+} from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
-
-// --- DUMMY DATA ---
-const SUBMISSION = {
-  studentName: "Jaylen Brooks",
-  examTitle: "CS301: Data Structures Midterm",
-  submittedAt: "2:45 PM, Mar 24",
-  duration: "85 mins",
-  autoGrade: 78,
-  status: "Needs Manual Review",
-  questions: [
-    { id: "q1", number: 1, title: "Binary Search Implementation", status: "passed", autoScore: 20, maxScore: 20 },
-    { id: "q2", number: 2, title: "Graph Cycle Detection", status: "partial", autoScore: 10, maxScore: 25 },
-    { id: "q3", number: 3, title: "Dynamic Programming Knapsack", status: "failed", autoScore: 0, maxScore: 30 },
-  ]
-};
-
-const Q2_DETAILS = {
-  description: "Write a function `hasCycle(graph)` that takes an adjacency list representation of a directed graph and returns `True` if it contains a cycle, and `False` otherwise.",
-  studentCode: `def hasCycle(graph):\n    visited = set()\n    \n    def dfs(node):\n        if node in visited:\n            return True\n        visited.add(node)\n        for neighbor in graph.get(node, []):\n            if dfs(neighbor):\n                return True\n        # BUG: Missing visited.remove(node) for cross-edges\n        return False\n\n    for start_node in graph:\n        if dfs(start_node):\n            return True\n            \n    return False`,
-  testCases: [
-    { id: 1, input: "{1: [2], 2: [3], 3: [1]}", expected: "True", result: "True", passed: true },
-    { id: 2, input: "{1: [2, 3], 2: [4], 3: [4], 4: []}", expected: "False", result: "True", passed: false }, // Cross-edge bug caught here
-    { id: 3, input: "{}", expected: "False", result: "False", passed: true },
-  ]
-};
+import { toast } from "sonner";
+import { getStudentSubmissionApi, updateAnswerScoreApi } from "../../api/submission";
 
 export function StudentSubmissionReview() {
-  const [activeQuestion, setActiveQuestion] = useState("q2");
-  const [manualScore, setManualScore] = useState<string>("10");
+  const { submissionId } = useParams<{ submissionId: string }>();
+  
+  // State
+  const [submission, setSubmission] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [activeAnswerId, setActiveAnswerId] = useState<string | null>(null);
+  const [manualScore, setManualScore] = useState<string>("0");
+  const [feedback, setFeedback] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch Data
+  useEffect(() => {
+    const fetchSubmission = async () => {
+      if (!submissionId) return;
+      try {
+        setIsLoading(true);
+        const response = await getStudentSubmissionApi(submissionId);
+        const data = response.submission || response;
+        
+        setSubmission(data);
+        
+        if (data.answers && data.answers.length > 0) {
+          const firstAnswer = data.answers[0];
+          setActiveAnswerId(firstAnswer._id || firstAnswer.questionId);
+          setManualScore(firstAnswer.score?.toString() || "0");
+          setFeedback(firstAnswer.instructorFeedback || "");
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to load submission details.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSubmission();
+  }, [submissionId]);
+
+  // Handle Question Change
+  const handleQuestionSelect = (answer: any) => {
+    setActiveAnswerId(answer._id || answer.questionId._id);
+    setManualScore(answer.score?.toString() || "0");
+    setFeedback(answer.feedback || ""); 
+  };
+
+  // Handle Save Override
+  const handleSaveOverride = async () => {
+    if (!submissionId || !activeAnswerId) return;
+    try {
+      setIsSaving(true);
+      
+      const newScore = Number(manualScore);
+      // Call your backend to update the specific answer's score & feedback
+      await updateAnswerScoreApi(submissionId, activeAnswerId, {
+        score: newScore,
+        feedback: feedback
+      });
+
+      // Optimistically update local state to reflect the new score and total
+      setSubmission((prev: any) => {
+        const updatedAnswers = prev.answers.map((ans: any) => {
+          if ((ans._id || ans.questionId._id) === activeAnswerId) {
+            return { ...ans, score: newScore, feedback: feedback };
+          }
+          return ans;
+        });
+        const newTotalScore = updatedAnswers.reduce((sum: number, ans: any) => sum + (ans.score || 0), 0);
+        return { ...prev, answers: updatedAnswers, totalScore: newTotalScore };
+      });
+
+      toast.success("Score and feedback saved successfully.");
+    } catch (err) {
+      toast.error("Failed to save the updated score.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-60px)] space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground text-sm">Loading submission details...</p>
+      </div>
+    );
+  }
+
+  if (error || !submission) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-60px)]">
+        <AlertTriangle className="w-8 h-8 text-destructive mb-4" />
+        <p className="text-foreground font-medium">{error || "Submission not found"}</p>
+        <Link to="/instructor/exams" className="mt-4">
+          <Button variant="outline">Back to Exams</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // Derived Variables
+  const activeAnswer = submission.answers?.find((a: any) => (a._id || a.questionId._id) === activeAnswerId);
+  const questionDetails = activeAnswer?.questionId || {}; 
+  const durationMins = submission.startedAt && submission.submittedAt 
+    ? Math.round((new Date(submission.submittedAt).getTime() - new Date(submission.startedAt).getTime()) / 60000)
+    : "-";
+
+  const passMark = submission.exam?.passMark ?? 50;
+  const hasPassed = submission.totalScore >= passMark;
 
   return (
     <div className="mx-auto space-y-6 pb-12 text-foreground px-2 h-[calc(100vh-60px)] flex flex-col text-left">
@@ -41,131 +127,161 @@ export function StudentSubmissionReview() {
       {/* HEADER */}
       <div className="flex items-center justify-between pb-4 border-b border-border shrink-0">
         <div className="flex items-center gap-4">
-          <Link to="/instructor/exams">
+          <Link to={`/instructor/exam/${submission.exam?._id || submission.exam}/submissions`}>
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-full">
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-3">
-              {SUBMISSION.studentName} 
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-medium px-2 py-0 text-[10px]">{SUBMISSION.status}</Badge>
+              {submission.student?.name || "Unknown Student"} 
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-medium px-2 py-0 text-[10px] capitalize">
+                {submission.status?.replace("-", " ")}
+              </Badge>
             </h1>
             <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-              <span>{SUBMISSION.examTitle}</span> • 
-              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {SUBMISSION.duration}</span> • 
-              <span>{SUBMISSION.submittedAt}</span>
+              <span>{submission.exam?.title || "Exam"}</span> • 
+              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {durationMins} mins</span> • 
+              <span>{submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : "Not submitted"}</span>
             </p>
           </div>
         </div>
         <div className="text-right flex gap-6">
-          <div><p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">System Grade</p><p className="text-xl font-bold text-foreground font-mono">{SUBMISSION.autoGrade}<span className="text-sm text-muted-foreground font-sans"> / 100</span></p></div>
+          <div className="flex flex-col items-end">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Total Grade</p>
+            <p className="text-xl font-bold text-foreground font-mono">
+              {submission.totalScore}
+              {submission.exam?.totalPoints !== undefined && <span className="text-sm text-muted-foreground font-sans"> / {submission.exam.totalPoints}</span>}
+            </p>
+            {submission.status !== "in-progress" && (
+              <Badge variant="outline" className={`mt-1 font-bold border px-2 py-0 text-[10px] ${hasPassed ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20"}`}>
+                {hasPassed ? 'PASSED' : 'FAILED'}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
       {/* SPLIT LAYOUT */}
       <div className="flex gap-6 flex-1 min-h-0">
         
-        {/* LEFT: Question Navigation (Flat List) */}
+        {/* LEFT: Question Navigation */}
         <div className="w-64 shrink-0 flex flex-col gap-1 overflow-y-auto pr-2 border-r border-border">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">Questions</h3>
-          {SUBMISSION.questions.map((q) => (
-            <button
-              key={q.id} onClick={() => setActiveQuestion(q.id)}
-              className={`text-left p-3 rounded-md transition-colors outline-none ${
-                activeQuestion === q.id ? "bg-muted/50" : "bg-transparent hover:bg-muted/30"
-              }`}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <span className={`font-medium text-sm ${activeQuestion === q.id ? "text-foreground" : "text-foreground/80"}`}>Q{q.number}</span>
-                <span className={`text-xs font-mono font-medium ${
-                  q.status === 'passed' ? 'text-emerald-500' : q.status === 'failed' ? 'text-destructive' : 'text-amber-500'
-                }`}>{q.autoScore}/{q.maxScore}</span>
-              </div>
-              <p className="text-xs text-muted-foreground truncate">{q.title}</p>
-            </button>
-          ))}
+          {submission.answers?.map((ans: any, index: number) => {
+            const isSelected = (ans._id || ans.questionId._id) === activeAnswerId;
+            const isPassed = ans.status === "Accepted" || ans.status === "passed";
+            const isFailed = ans.status === "Wrong Answer" || ans.status === "failed";
+            
+            return (
+              <button
+                key={ans._id || index} 
+                onClick={() => handleQuestionSelect(ans)}
+                className={`text-left p-3 rounded-md transition-colors outline-none ${isSelected ? "bg-muted/50" : "bg-transparent hover:bg-muted/30"}`}
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <span className={`font-medium text-sm ${isSelected ? "text-foreground" : "text-foreground/80"}`}>Q{index + 1}</span>
+                  <span className={`text-xs font-mono font-medium ${isPassed ? 'text-emerald-500' : isFailed ? 'text-destructive' : 'text-amber-500'}`}>
+                    {ans.score}/{ans.questionId?.pointsWeight || "-"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">{ans.questionId?.title || `Question ${index + 1}`}</p>
+              </button>
+            );
+          })}
         </div>
 
         {/* RIGHT: Active Question Details */}
-        <div className="flex-1 flex flex-col gap-6 overflow-y-auto pb-6">
-          
-          {/* Prompt */}
-          <div className="flex flex-col border border-border rounded-lg bg-card/30 overflow-hidden shrink-0">
-            <div className="py-2 px-4 bg-muted/10 border-b border-border flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <AlignLeft className="w-3.5 h-3.5" /> Prompt
-            </div>
-            <div className="p-4 text-sm text-foreground leading-relaxed">{Q2_DETAILS.description}</div>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-1 min-h-[400px]">
-            {/* Student Code */}
-            <div className="flex flex-col border border-border rounded-lg overflow-hidden h-full">
-              <div className="py-2 px-4 bg-muted/10 border-b border-border flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"><Code2 className="w-3.5 h-3.5" /> Submission</div>
-                <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-2 py-0.5 rounded">Python 3</span>
+        {activeAnswer && (
+          <div className="flex-1 flex flex-col gap-6 overflow-y-auto pb-6">
+            
+            <div className="flex flex-col border border-border rounded-lg bg-card/30 overflow-hidden shrink-0">
+              <div className="py-2 px-4 bg-muted/10 border-b border-border flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <AlignLeft className="w-3.5 h-3.5" /> Prompt
               </div>
-              <div className="flex-1 bg-[#1e1e1e]">
-                <textarea readOnly value={Q2_DETAILS.studentCode} className="w-full h-full p-4 bg-transparent text-[#d4d4d4] font-mono text-sm border-none focus:ring-0 resize-none outline-none" />
+              <div className="p-4 text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                {questionDetails.description || "No description provided."}
               </div>
             </div>
 
-            {/* Grading & Tests */}
-            <div className="flex flex-col gap-6 h-full">
-              {/* Test Cases */}
-              <div className="flex flex-col border border-border rounded-lg bg-card/30 overflow-hidden shrink-0">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-1 min-h-[400px]">
+              
+              <div className="flex flex-col border border-border rounded-lg overflow-hidden h-full">
                 <div className="py-2 px-4 bg-muted/10 border-b border-border flex items-center justify-between">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Execution Results</div>
-                  <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-normal px-2 py-0 text-[10px]">Partial Pass</Badge>
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Code2 className="w-3.5 h-3.5" /> Submission
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-2 py-0.5 rounded capitalize">
+                    {activeAnswer.language || "Text"}
+                  </span>
                 </div>
-                <div className="divide-y divide-border">
-                  {Q2_DETAILS.testCases.map((tc) => (
-                    <div key={tc.id} className="p-3 text-sm flex items-start gap-3 bg-transparent">
-                      <div className="mt-0.5">{tc.passed ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-destructive" />}</div>
-                      <div className="flex-1 space-y-1 font-mono text-xs">
-                        <div className="text-muted-foreground">In: <span className="text-foreground">{tc.input}</span></div>
-                        <div className="flex gap-4">
-                          <span className="text-muted-foreground">Exp: <span className="text-emerald-500">{tc.expected}</span></span>
-                          <span className="text-muted-foreground">Got: <span className={tc.passed ? "text-emerald-500" : "text-destructive"}>{tc.result}</span></span>
-                        </div>
+                <div className="flex-1 bg-[#1e1e1e]">
+                  <textarea readOnly value={activeAnswer.answer || activeAnswer.code || ""} className="w-full h-full p-4 bg-transparent text-[#d4d4d4] font-mono text-sm border-none focus:ring-0 resize-none outline-none" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-6 h-full">
+                {activeAnswer.testResults && activeAnswer.testResults.length > 0 && (
+                  <div className="flex flex-col border border-border rounded-lg bg-card/30 overflow-hidden shrink-0 max-h-64 overflow-y-auto">
+                    <div className="py-2 px-4 bg-muted/10 border-b border-border flex items-center justify-between sticky top-0 backdrop-blur-md z-10">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Execution Results</div>
+                      <Badge variant="outline" className={`font-normal px-2 py-0 text-[10px] ${activeAnswer.status === "Accepted" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"}`}>
+                        {activeAnswer.status}
+                      </Badge>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {activeAnswer.testResults.map((tc: any, idx: number) => {
+                        const originalTest = questionDetails.testCases?.find((qtc: any) => qtc._id === tc.testCaseId);
+                        return (
+                          <div key={tc._id || idx} className="p-3 text-sm flex items-start gap-3 bg-transparent">
+                            <div className="mt-0.5">{tc.passed ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-destructive" />}</div>
+                            <div className="flex-1 space-y-1 font-mono text-xs">
+                              {originalTest?.input && <div className="text-muted-foreground">In: <span className="text-foreground">{originalTest.input}</span></div>}
+                              <div className="flex flex-col xl:flex-row gap-2 xl:gap-4">
+                                {originalTest?.expectedOutput && <span className="text-muted-foreground">Exp: <span className="text-emerald-500">{originalTest.expectedOutput}</span></span>}
+                                <span className="text-muted-foreground">Got: <span className={tc.passed ? "text-emerald-500" : "text-destructive"}>{tc.errorMessage || tc.actualOutput || "No output"}</span></span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col border border-border rounded-lg bg-card/30 overflow-hidden flex-1">
+                  <div className="py-2 px-4 bg-muted/10 border-b border-border flex items-center justify-between">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Manual Override</div>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" value={manualScore} onChange={(e) => setManualScore(e.target.value)} className="w-16 h-7 text-right bg-background border-border text-foreground font-mono text-xs" />
+                      <span className="text-muted-foreground text-xs font-mono">/ {questionDetails.pointsWeight || "-"}</span>
+                    </div>
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col gap-3">
+                    {activeAnswer.status === "Compilation Error" && (
+                      <div className="bg-destructive/5 border border-destructive/20 p-3 rounded-md flex gap-2">
+                        <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-destructive/90">Code failed to compile. See execution results above.</p>
                       </div>
+                    )}
+                    <Textarea 
+                      placeholder="Leave feedback for the student regarding this question..."
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      className="flex-1 bg-background border-border text-foreground resize-none text-sm p-3 focus-visible:ring-1 focus-visible:ring-border"
+                    />
+                    <div className="flex justify-end pt-1">
+                      <Button disabled={isSaving} onClick={handleSaveOverride} className="bg-foreground text-background hover:bg-foreground/90 h-8 rounded-full px-5 text-xs">
+                        {isSaving ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-2" />}
+                        {isSaving ? "Saving..." : "Save Override"}
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Manual Override */}
-              <div className="flex flex-col border border-border rounded-lg bg-card/30 overflow-hidden flex-1">
-                <div className="py-2 px-4 bg-muted/10 border-b border-border flex items-center justify-between">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Manual Override</div>
-                  <div className="flex items-center gap-2">
-                    <Input type="number" value={manualScore} onChange={(e) => setManualScore(e.target.value)} className="w-16 h-7 text-right bg-background border-border text-foreground font-mono text-xs" />
-                    <span className="text-muted-foreground text-xs font-mono">/ 25</span>
-                  </div>
-                </div>
-                <div className="p-4 flex-1 flex flex-col gap-3">
-                  {Q2_DETAILS.testCases.some(tc => !tc.passed) && (
-                    <div className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-md flex gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                      <p className="text-[11px] text-amber-600 dark:text-amber-500">Failed test case #2. Algorithm does not handle cross-edges in directed graphs properly, resulting in false positives.</p>
-                    </div>
-                  )}
-                  <Textarea 
-                    placeholder="Leave feedback for the student regarding this question..."
-                    className="flex-1 bg-background border-border text-foreground resize-none text-sm p-3 focus-visible:ring-1 focus-visible:ring-border"
-                    defaultValue="Good attempt with DFS, but you forgot to remove the node from the visited set after the recursive call returns. This causes cross-edges to be misidentified as back-edges (cycles). Giving partial credit for the general structure."
-                  />
-                  <div className="flex justify-end pt-1">
-                    <Button className="bg-foreground text-background hover:bg-foreground/90 h-8 rounded-full px-5 text-xs">
-                      <Save className="w-3.5 h-3.5 mr-2" /> Save Draft
-                    </Button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-
+        )}
       </div>
     </div>
   );

@@ -46,7 +46,7 @@ export interface Question {
   // --- TYPE A: coding specific fields (Optional) ---
   allowedLanguages?: string[];
   // Record<string, string> perfectly maps to Mongoose's Map of Strings
-  starterCode?: Record<string, string>; 
+  starterCode?: Record<string, string>;
   referenceSolution?: string;
   testCases?: TestCase[];
   timeLimitMs?: number;
@@ -54,7 +54,7 @@ export interface Question {
   // --- TYPE B: multiple choice / standard fields (Optional) ---
   options?: string[];
   // Mixed type allows index (number), short text (string), or T/F (boolean)
-  correctAnswer?: string | number | boolean; 
+  correctAnswer?: string | number | boolean;
   isPracticeAvailable?: boolean;
   createdBy?: string | User;
   updatedAt?: string;
@@ -74,9 +74,11 @@ export interface Exam {
   aiProctoringEnabled?: boolean;
   aiGradingEnabled?: boolean;
   assignedCohorts?: string[];
+  totalPoints?: number;
+  passMark?: number;
   // ----------------------------------------
-  // Note: Depending on the API call, this might be an array of ObjectIds (string[]) 
-  questions: Question[]; 
+  // Note: Depending on the API call, this might be an array of ObjectIds (string[])
+  questions: Question[];
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
