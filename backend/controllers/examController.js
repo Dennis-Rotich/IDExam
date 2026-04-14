@@ -113,6 +113,7 @@ const getTeacherExams = async (req, res) => {
     // Fetch all exams created by this specific teacher
     const exams = await examModel
       .find({ createdBy: req.user.id })
+      .populate('questions')
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, exams });
   } catch (error) {
