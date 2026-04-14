@@ -25,7 +25,8 @@ const examSchema = new mongoose.Schema(
         required: true,
       },
     ],
-    
+    totalPoints: { type: Number, default: 70 },
+    passMark: { type: Number, default: 50 },
     isActive: { type: Boolean, default: true },
     assignedCohorts: [{ type: String }],
   },

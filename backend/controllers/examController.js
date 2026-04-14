@@ -122,6 +122,21 @@ const getTeacherExams = async (req, res) => {
   }
 };
 
+export const getExamSubmissions = async (req, res) => {
+    try {
+        const { examId } = req.params;
+        
+        // Fetch all submissions for this exam, populate student details
+        const submissions = await submissionModel.find({ exam: examId })
+            .populate('student', 'name studentId email') 
+            .sort({ submittedAt: -1 });
+            
+        res.status(200).json({ success: true, data: submissions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Failed to fetch submissions." });
+    }
+};
+
 export const getAssignedExams = async (req, res) => {
   try {
     const studentId = req.user.id;

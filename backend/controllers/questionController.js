@@ -64,6 +64,47 @@ export const getInstructorQuestions = async (req, res) => {
   }
 };
 
+export const getQuestions = async (req, res) => {
+    try {
+        // 1. Extract query params with defaults
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const search = req.query.search || "";
+        const tagsParam = req.query.tags;
+
+        // 2. Build the query object
+        let query = {};
+        
+        if (search) {
+            query.title = { $regex: search, $options: "i" };
+        }
+        
+        if (tagsParam) {
+            // Split "react,node" into ['react', 'node'] and search where tags array matches ANY
+            const tagsArray = tagsParam.split(',').map(tag => tag.trim());
+            query.tags = { $in: tagsArray }; 
+        }
+
+        // 3. Execute query with pagination
+        const skip = (page - 1) * limit;
+        
+        const [questions, total] = await Promise.all([
+            questionModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }),
+            questionModel.countDocuments(query)
+        ]);
+
+        res.status(200).json({ 
+            success: true, 
+            questions, 
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            totalQuestions: total
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
 // @desc    Update a question
 export const updateQuestion = async (req, res) => {
   try {

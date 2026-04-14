@@ -47,6 +47,51 @@ export const startSubmission = async (req, res) => {
   }
 };
 
+export const updateAnswerScore = async (req, res) => {
+  try {
+    const { sessionId, answerId } = req.params;
+    const { score, feedback } = req.body;
+
+    // 1. Find the submission
+    const submission = await submissionModel.findById(sessionId);
+    if (!submission) {
+      return res.status(404).json({ success: false, message: "Submission not found" });
+    }
+
+    // 2. Find the specific answer within the submission's answers array
+    const answer = submission.answers.id(answerId); // Mongoose helper for subdocuments
+    if (!answer) {
+      return res.status(404).json({ success: false, message: "Answer not found in this submission" });
+    }
+
+    // 3. Update the score and feedback
+    answer.score = Number(score);
+    if (feedback !== undefined) {
+      answer.instructorFeedback = instructorFeedback; 
+    }
+
+    // 4. Recalculate the Total Score for the whole submission
+    submission.totalScore = submission.answers.reduce((total, ans) => total + (ans.score || 0), 0);
+
+    // 5. Update status if it was pending manual review
+    if(submission.status != "graded")
+      submission.status = "graded"; 
+
+    // 6. Save the updated document
+    await submission.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Score updated successfully", 
+      totalScore: submission.totalScore 
+    });
+
+  } catch (error) {
+    console.error("Update Score Error:", error);
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
+  }
+};
+
 // to handle frequent API saves - a quiet, background operation designed to prevent data loss. 
 // It fires frequently (e.g., every 2 seconds after the student stops typing) to ensure that if their browser crashes, 
 // their text or code is safely stored in the database.
@@ -310,10 +355,15 @@ export const finalizeExam = async (req, res) => {
   }
 };
 
-const getSubmission = async (req, res) => {
+export const getSubmission = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    let submission = await submissionModel.findOne({ _id: sessionId });
+    
+    // CRITICAL FIX: Chain .populate() to pull in referenced documents
+    let submission = await submissionModel.findOne({ _id: sessionId })
+      .populate('student', 'name studentId email') 
+      .populate('exam', 'title courseCode examCode totalPoints') 
+      .populate('answers.questionId'); // Grabs the prompt, tags, and test cases
 
     if (!submission) {
       return res.status(404).json({ success: false, message: "Submission not found" });
@@ -321,21 +371,17 @@ const getSubmission = async (req, res) => {
 
     // LAZY EVALUATION
     if (submission.status === "in-progress" && new Date() > submission.endsAt) {
-      submission = await submissionModel.findOneAndUpdate(
-        { _id: sessionId },
-        {
-          $set: {
-            status: "submitted", // Must match schema enum
-            submittedAt: submission.endsAt,
-          },
-        },
-        { returnDocument: 'after' } ,
-      );
+      // OPTIMIZATION: Mutate and save the instance instead of running a second query.
+      // This preserves the populated data we just fetched.
+      submission.status = "submitted";
+      submission.submittedAt = submission.endsAt;
+      await submission.save(); 
     }
 
     res.status(200).json({ success: true, submission });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error", error: error });
+    console.error("Fetch Submission Error:", error);
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 };
 

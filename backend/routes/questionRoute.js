@@ -19,6 +19,8 @@ questionRouter.get(
   getInstructorQuestions,
 );
 
+questionRouter.get("/all", verifyToken, isTeacher, );
+
 questionRouter.get("/:id", verifyToken, isTeacher, getQuestion);
 
 questionRouter.put("/:id", verifyToken, isTeacher, updateQuestion);
