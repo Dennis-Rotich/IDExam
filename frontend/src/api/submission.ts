@@ -14,6 +14,25 @@ export const startSubmissionApi = async (examId: string): Promise<SubmissionResp
     }
 };
 
+// Update a specific answer's score and feedback (Instructor Manual Override)
+export const updateAnswerScoreApi = async (
+    submissionId: string,
+    answerId: string,
+    data: { score: number; feedback: string }
+): Promise<any> => {
+    try {
+        // Using PATCH as we are partially updating a document
+        const response = await apiClient.patch(
+            `/submission/${submissionId}/answer/${answerId}/score`,
+            data
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Update Answer Score API error:", error);
+        throw error;
+    }
+};
+
 // For the "Run" button (Dry run)
 export const runCodeApi = async (language: string, code: string) => {
     const response = await apiClient.post(`/submission/run`, { language, code });
@@ -65,7 +84,7 @@ export const getStudentSubmissionApi = async (submissionId: string): Promise<Sub
 // INSTRUCTOR ACTIONS
 export const getExamSubmissionsApi = async (examId: string): Promise<SubmissionsListResponse> => {
     try {
-        const response = await apiClient.get<SubmissionsListResponse>(`/submission/exam/${examId}`);
+        const response = await apiClient.get<SubmissionsListResponse>(`/exam/teacher/${examId}/submissions`);
         return response.data;
     } catch (error) {
         console.error("Get Exam Submissions API error:", error);

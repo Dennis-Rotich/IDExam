@@ -45,6 +45,16 @@ export const getTeacherExamsApi = async (): Promise<ExamsListResponse> => {
     }
 };
 
+export const getExamSubmissionsApi = async (examId: string): Promise<ExamResponse> => {
+    try {
+        const response = await apiClient.get<ExamResponse>(`/exam/teacher/${examId}/submissions`);
+        return response.data;
+    } catch (error) {
+        console.error("Get Exam API error:", error);
+        throw error;
+    }
+};
+
 export const getExamForEditApi = async (examId: string): Promise<ExamResponse> => {
     try {
         const response = await apiClient.get<ExamResponse>(`/exam/teacher/${examId}`);

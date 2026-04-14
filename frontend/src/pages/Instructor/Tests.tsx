@@ -296,7 +296,7 @@ export function InstructorTestsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="cursor-pointer hover:bg-muted"
-                          onClick={() => navigate(`/instructor/review`)}
+                          onClick={() => navigate(`/instructor/exam/${test._id}/submissions`)}
                         >
                           <BarChart2 className="mr-2 h-4 w-4 text-muted-foreground" />{" "}
                           Submissions
