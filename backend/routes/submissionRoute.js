@@ -1,7 +1,8 @@
 import express from 'express';
 import { 
     startSubmission,
-    studentSubmit, 
+    studentSubmit,
+    updateAnswerScore, 
     runCode, 
     autosave, 
     getSubmission, 
