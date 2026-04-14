@@ -14,7 +14,6 @@ const questionSchema = new mongoose.Schema({
   examId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'exam', 
-    required: true 
   },
   displayId: { type: Number, unique: true }, // For LeetCode-style numbering (e.g., Question 1, 2, 3)
   title: { type: String, required: true },
