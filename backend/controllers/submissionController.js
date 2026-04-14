@@ -108,7 +108,7 @@ const autosave = async (req, res) => {
 
 
 //responsible for executing the code, grading it against test cases, and permanently recording the score.
-export const studentSubmit = async (req, res) => {
+const studentSubmit = async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { questionId, language, code } = req.body;
