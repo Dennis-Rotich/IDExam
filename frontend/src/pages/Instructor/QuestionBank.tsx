@@ -102,9 +102,9 @@ export function QuestionBank() {
   });
 
   const tabs = [
+    { id: "all", label: "All Questions" },
     { id: "my-questions", label: "My Questions" },
     { id: "network", label: "Department Network" },
-    { id: "all", label: "All Questions" },
   ];
 
   function getDifficultyColor(diff: string) {
