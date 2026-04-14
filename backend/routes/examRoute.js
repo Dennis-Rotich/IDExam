@@ -6,7 +6,8 @@ import {
     getExamForEdit, 
     updateExam, 
     deleteExam, 
-    addQuestionToExam
+    addQuestionToExam,
+    getExamSubmissions
 } from "../controllers/examController.js";
 import { verifyToken, isTeacher } from "../middlewares/auth.js";
 
@@ -18,6 +19,9 @@ const examRouter = express.Router();
 examRouter.get('/teacher/all', verifyToken, isTeacher, getTeacherExams);
 // Get a single exam with all hidden test cases for editing
 examRouter.get('/teacher/:examId', verifyToken, isTeacher, getExamForEdit);
+// Get a single exam with all hidden test cases for editing
+examRouter.get('/teacher/:examId/submissions', verifyToken, isTeacher, getExamSubmissions);
+
 // Create a new exam
 examRouter.post('/new', verifyToken, isTeacher, createExam);
 
