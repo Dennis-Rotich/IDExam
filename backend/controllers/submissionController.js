@@ -355,7 +355,7 @@ export const finalizeExam = async (req, res) => {
   }
 };
 
-export const getSubmission = async (req, res) => {
+const getSubmission = async (req, res) => {
   try {
     const { sessionId } = req.params;
     
