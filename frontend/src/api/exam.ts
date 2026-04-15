@@ -65,6 +65,7 @@ export const getExamForEditApi = async (examId: string): Promise<ExamResponse> =
     }
 };
 
+
 // UPDATE
 export const updateExamApi = async (examId: string, examData: Partial<Exam>): Promise<ExamResponse> => {
     try {
