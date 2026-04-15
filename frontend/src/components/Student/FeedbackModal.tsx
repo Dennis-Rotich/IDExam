@@ -1,29 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { ScrollArea } from "../ui/scroll-area";
+import { type BrowseTest } from "../../types/exam";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 
-// Updated to accept the submission object from your BrowseTest interface
-export interface FeedbackTest {
-  id: string;
-  title: string;
-  subject: string;
-  instructorName: string;
-  score?: number;
-  instructorFeedback?: string; // Root-level feedback
-  submission?: {
-    totalScore?: number;
-    answers?: Array<{
-      questionId: string | any;
-      status?: string;
-      score?: number;
-      instructorFeedback?: string; 
-    }>;
-  };
-}
-
 interface FeedbackModalProps {
-  test: FeedbackTest | null;
+  test: BrowseTest | null;
   onClose: () => void;
 }
 
@@ -116,7 +98,7 @@ export function FeedbackModal({ test, onClose }: FeedbackModalProps) {
                         </TableCell>
                       </TableRow>
                     )}
-                    {answers.map((ans, idx) => {
+                    {answers.map((ans: any, idx: any) => {
                       const ansScore = ans.score || 0;
                       // Fallback to "Question X" if the backend didn't populate the question title
                       const qTitle = ans.questionId?.title || `Question ${idx + 1}`; 

@@ -16,20 +16,27 @@ export type TestAvailability =
   | "upcoming"
   | "locked";
 
+// types/exam.ts
+
 export interface BrowseTest {
-  id: string; // The Exam ID
-  submission?: SubmissionResponse | any;
+  id: string;
   title: string;
   subject: string;
   instructorName: string;
-  availability: TestAvailability;
+  
+  // These are the exact tags your backend controller generates
+  availability: "available" | "completed" | "locked" | "upcoming";
+  inProgress: boolean;
+  
   questionCount: number;
   durationMinutes: number;
-  availableFrom: string;
-  dueDate: string;
-  score?: number;
-  inProgress?: boolean;
-  instructorFeedback?: string; // Added for the Feedback Modal
+  availableFrom: string; 
+  dueDate: string; 
+  
+  // These will be present/populated based on the submission state
+  submission: any | null; // You can replace 'any' with your actual Submission interface if you have one
+  score?: number | 0;
+  instructorFeedback?: string | null;
 }
 
 export interface Question {

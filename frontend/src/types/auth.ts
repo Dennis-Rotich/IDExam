@@ -36,8 +36,6 @@ export interface LoginUserRequest {
 
 // 5. The Update Payload (Matches the backend's allowed update fields)
 export interface UpdateUserRequest {
-    name?: string;
-    institution?: string;
     avatarUrl?: string;
     cohort?: string;
 }
