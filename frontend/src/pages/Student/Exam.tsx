@@ -10,12 +10,13 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { MonacoInstance } from "../../components/Editor/MonacoInstance";
 import { LoadingExam } from "../Loading/StudentPageLoading";
 import { AutoSaveIndicator } from "../../components/Layout/AutoSaveIndicator";
 import { StudentConsole } from "../../components/Student/StudentConsole";
 import { Timer } from "../../components/Layout/Timer";
+import { ConfirmSubmitModal } from "../../components/Student/ConfirmSubmitModal";
 import {
   Settings,
   User,
@@ -43,6 +44,7 @@ import { toast } from "sonner";
 
 export const StudentExam = () => {
   const { examId } = useParams<{ examId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const {
     currentQuestionIndex,
@@ -57,6 +59,7 @@ export const StudentExam = () => {
   const [consoleOutput, setConsoleOutput] = useState({
     output: "",
     executionTime: "",
+    isError: false,
   });
 
   const [minPercentage, setMinPercentage] = useState(20);
@@ -65,15 +68,18 @@ export const StudentExam = () => {
   const [examStatus, setExamStatus] = useState<
     "in-progress" | "submitting" | "completed" | "failed"
   >("in-progress");
-  const [examEndTime, setExamEndTime] = useState(
-    new Date(Date.now() + 3600000).toISOString(),
-  );
+
+  // ABSOLUTE TIMER FIX: Starts as null, waits for true DB timestamp
+  const [examEndTime, setExamEndTime] = useState<string | null>(null);
 
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isConnected, setIsConnected] = useState(false);
 
+  // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
+
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     return (localStorage.getItem("theme") as "light" | "dark") || "dark";
   });
@@ -90,7 +96,7 @@ export const StudentExam = () => {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // --- 1. Exam Initialization & Sockets ---
+  // --- 1. Exam Initialization, Sockets, & Hydration ---
   useEffect(() => {
     if (!examId || !user) return;
 
@@ -107,34 +113,65 @@ export const StudentExam = () => {
     const initializeExam = async () => {
       try {
         const fetchedExam = await getExamApi(examId);
-        const submission = await startSubmissionApi(examId);
+        const submissionRes = await startSubmissionApi(examId);
+        const submission = submissionRes.submission;
 
-        setSubmissionId(submission.submission._id);
+        setSubmissionId(submission._id);
 
-        if (fetchedExam.exam.durationInMinutes) {
-          setExamEndTime(
-            new Date(
-              Date.now() + fetchedExam.exam.durationInMinutes * 60000,
-            ).toISOString(),
-          );
+        if (submission.endsAt) {
+          setExamEndTime(submission.endsAt);
         }
 
+        const restoredAnswers: Record<string, any> = {};
+        const backendAnswers = submission.answers || [];
+
         const mappedQuestions = fetchedExam.exam.questions.map(
-          (q: any, i: number) => ({
-            id: q._id,
-            number: i + 1,
-            title: q.title,
-            description: q.description,
-            type: q.type || "CODING",
-            options: q.options || [],
-            pointsWeight: q.pointsWeight || 10,
-            isAttempted: false,
-            difficulty: q.difficulty,
-            code: q.starterCode?.["python"] || "",
-            language: "python", // Default language
-          }),
+          (q: any, i: number) => {
+            const savedAns = backendAnswers.find(
+              (a: any) => (a.questionId?._id || a.questionId) === q._id,
+            );
+            const localBuffer = sessionStorage.getItem(
+              `exam_${submission._id}_q_${q._id}`,
+            );
+
+            let initialCode = q.starterCode?.["python"] || "";
+            let initialText: any = undefined;
+
+            if (q.type === "CODING" || !q.type) {
+              if (localBuffer) initialCode = localBuffer;
+              else if (savedAns?.answer)
+                initialCode = savedAns.answer;
+            } else {
+              if (localBuffer) initialText = localBuffer;
+              else if (savedAns?.answer !== undefined)
+                initialText = savedAns.answer;
+
+              if (initialText !== undefined) {
+                if (q.type === "MULTIPLE_CHOICE")
+                  initialText = Number(initialText);
+                if (initialText === "true") initialText = true;
+                if (initialText === "false") initialText = false;
+                restoredAnswers[q._id] = initialText;
+              }
+            }
+
+            return {
+              id: q._id,
+              number: i + 1,
+              title: q.title,
+              description: q.description,
+              type: q.type || "CODING",
+              options: q.options || [],
+              pointsWeight: q.pointsWeight || 10,
+              isAttempted: !!(localBuffer || savedAns),
+              difficulty: q.difficulty,
+              code: initialCode,
+              language: savedAns?.language || "python",
+            };
+          },
         );
 
+        setAnswers(restoredAnswers);
         setQuestions(mappedQuestions);
         setCurrentQuestionIndex(0);
       } catch (error: any) {
@@ -155,20 +192,29 @@ export const StudentExam = () => {
     };
   }, [user, examId, setQuestions, setCurrentQuestionIndex]);
 
-  // --- 2. REST API Auto-sync ---
+  // --- 2. REST API Auto-sync & Local Storage Buffering ---
   useEffect(() => {
     if (!currentQuestion || !submissionId) return;
 
-    const syncTimer = setTimeout(async () => {
-      let syncData = isCodingQuestion
-        ? currentQuestion.code || ""
-        : answers[currentQuestion.id] || "";
-      let lang = isCodingQuestion
-        ? currentQuestion.language || "python"
-        : "text";
+    const syncData = isCodingQuestion
+      ? currentQuestion.code || ""
+      : (answers[currentQuestion.id] ?? "");
+    const lang = isCodingQuestion
+      ? currentQuestion.language || "python"
+      : "text";
 
+    if (syncData !== undefined && syncData !== "") {
+      sessionStorage.setItem(
+        `exam_${submissionId}_q_${currentQuestion.id}`,
+        String(syncData),
+      );
+    }
+
+    const syncTimer = setTimeout(async () => {
       try {
-        await autosaveApi(submissionId, currentQuestion.id, lang, syncData);
+        if (syncData !== "") {
+          await autosaveApi(submissionId, currentQuestion.id, lang, syncData);
+        }
       } catch (e) {
         console.error("Autosave failed", e);
       }
@@ -177,7 +223,7 @@ export const StudentExam = () => {
     return () => clearTimeout(syncTimer);
   }, [
     currentQuestion?.code,
-    answers,
+    answers[currentQuestion?.id],
     currentQuestion?.id,
     submissionId,
     isCodingQuestion,
@@ -204,7 +250,6 @@ export const StudentExam = () => {
     setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
   };
 
-  // --- NEW: Language Change Handler ---
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value;
     const updatedQuestions = [...questions];
@@ -215,14 +260,60 @@ export const StudentExam = () => {
     setQuestions(updatedQuestions);
   };
 
+  // --- Calculate Exam Progress for Modal ---
+  const getProgressStats = () => {
+    if (!questions || questions.length === 0)
+      return { total: 0, attempted: 0, unattempted: 0 };
+
+    let attemptedCount = 0;
+
+    questions.forEach((q) => {
+      const isCoding = q.type === "CODING" || !q.type;
+
+      if (isCoding) {
+        const localBuffer = sessionStorage.getItem(
+          `exam_${submissionId}_q_${q.id}`,
+        );
+        if (
+          (localBuffer && localBuffer.trim().length > 0) ||
+          (q.code && q.code.trim().length > 0)
+        ) {
+          attemptedCount++;
+        }
+      } else {
+        if (answers[q.id] !== undefined && answers[q.id] !== "") {
+          attemptedCount++;
+        }
+      }
+    });
+
+    return {
+      total: questions.length,
+      attempted: attemptedCount,
+      unattempted: questions.length - attemptedCount,
+    };
+  };
+
   // --- 4. Exam Finalization (Finish Exam) ---
   const submitExamPayload = async (isAutoSubmit: boolean = false) => {
     if (examStatus !== "in-progress") return;
+
+    setIsConfirmSubmitOpen(false);
     setExamStatus("submitting");
+
+    if (isAutoSubmit) {
+      toast.error("Time is up! Auto-submitting your exam...");
+    }
 
     try {
       if (user && submissionId) {
         await finalizeExamApi(submissionId);
+
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.startsWith(`exam_${submissionId}`)) {
+            sessionStorage.removeItem(key);
+          }
+        });
       } else {
         await new Promise((resolve) => setTimeout(resolve, 2500));
       }
@@ -239,29 +330,55 @@ export const StudentExam = () => {
   );
 
   // --- 5A. Execution Handler (Dry Run) ---
-  // Update handleRunCode to store the result
   const handleRunCode = async () => {
+    if (!currentQuestion?.code) {
+      toast.error("Code editor is empty. Write some code before running.");
+      return;
+    }
+
     setIsRunning(true);
     try {
       const result = await runCodeApi(
         currentQuestion.language || "python",
-        currentQuestion.code || "",
+        currentQuestion.code,
       );
 
-      setConsoleOutput({ output: result.output, executionTime: "" }); // ← add this
+      const isExecutionError = result.isError;
+      let finalOutput = result.output;
+
+      if (!isExecutionError && result.output.trim() === "") {
+        finalOutput =
+          "== Execution finished successfully with no output. Use output logs for debugging. ==";
+      }
+
+      setConsoleOutput({
+        output: finalOutput,
+        executionTime: result.executionTime || "",
+        isError: isExecutionError,
+      });
+
+      if (isExecutionError) {
+        toast.error(
+          "Code execution failed. Check the console for error details.",
+        );
+      } else {
+        toast.success("Code executed successfully!");
+      }
 
       if (isConnected && examId) {
         socket.emit("student_execution", {
           examId,
           studentId: user?.id || socket.id,
           language: currentQuestion.language || "python",
-          output: result.output,
-          isError: result.isError,
+          output: finalOutput,
+          isError: isExecutionError,
         });
       }
-    } catch (e) {
-      console.error("Execution failed", e);
-      toast.error("Code execution failed.");
+    } catch (e: any) {
+      console.error("Code execution network error:", e);
+      toast.error(
+        "Server error. Failed to communicate with the execution engine.",
+      );
     } finally {
       setIsRunning(false);
     }
@@ -307,10 +424,7 @@ export const StudentExam = () => {
               Failed to load the exam environment. You may not be assigned to
               this cohort, or the exam is inactive.
             </p>
-            <Button
-              variant="secondary"
-              onClick={() => (window.location.href = "/student/")}
-            >
+            <Button variant="secondary" onClick={() => navigate("/student/")}>
               Return to Dashboard
             </Button>
           </div>
@@ -338,10 +452,7 @@ export const StudentExam = () => {
             <p className="text-muted-foreground mb-6 text-sm">
               Your exam has been securely transmitted and recorded.
             </p>
-            <Button
-              variant="secondary"
-              onClick={() => (window.location.href = "/student/")}
-            >
+            <Button variant="secondary" onClick={() => navigate("/student/")}>
               Return to Dashboard
             </Button>
           </div>
@@ -352,6 +463,14 @@ export const StudentExam = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground font-sans">
+      {/* --- STANDALONE CONFIRM SUBMIT MODAL --- */}
+      <ConfirmSubmitModal
+        isOpen={isConfirmSubmitOpen}
+        onClose={() => setIsConfirmSubmitOpen(false)}
+        onConfirm={() => submitExamPayload(false)}
+        stats={getProgressStats()}
+      />
+
       {/* --- SETTINGS MODAL OVERLAY --- */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -367,7 +486,6 @@ export const StudentExam = () => {
             </h3>
 
             <div className="space-y-6">
-              {/* Theme Toggle */}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Interface Theme</span>
                 <div className="flex bg-muted rounded-md p-1 border border-border">
@@ -386,7 +504,6 @@ export const StudentExam = () => {
                 </div>
               </div>
 
-              {/* Future setting placeholder */}
               <div className="flex items-center justify-between opacity-50 cursor-not-allowed">
                 <span className="text-sm font-medium">Editor Font Size</span>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
@@ -407,9 +524,10 @@ export const StudentExam = () => {
           <span className="text-foreground">IDExam Engine</span>
         </div>
         <div className="flex items-center gap-6">
-          <Timer endsAt={examEndTime} onTimeUp={handleTimeUp} />
+          {examEndTime && (
+            <Timer endsAt={examEndTime} onTimeUp={handleTimeUp} />
+          )}
           <div className="flex items-center gap-3 text-muted-foreground">
-            {/* --- CLICKABLE SETTINGS BUTTON --- */}
             <Settings
               size={18}
               className="hover:text-foreground cursor-pointer transition-colors"
@@ -455,8 +573,9 @@ export const StudentExam = () => {
               <div className="flex flex-wrap gap-2">
                 {questions.map((q, i) => {
                   const hasAnswer =
-                    q.type === "CODING"
-                      ? q.isAttempted
+                    q.type === "CODING" || !q.type
+                      ? !!q.code &&
+                        q.code !== (q as any).starterCode?.["python"]
                       : answers[q.id] !== undefined;
                   return (
                     <button
@@ -491,7 +610,6 @@ export const StudentExam = () => {
                   className="flex flex-col overflow-hidden"
                 >
                   <div className="h-10 border-b border-border px-4 flex items-center justify-between bg-muted/50 text-xs">
-                    {/* --- NEW: LANGUAGE SELECTOR DROPDOWN --- */}
                     <div className="flex items-center gap-2">
                       <select
                         value={currentQuestion.language || "python"}
@@ -646,7 +764,7 @@ export const StudentExam = () => {
           )}
 
           <Button
-            onClick={() => submitExamPayload(false)}
+            onClick={() => setIsConfirmSubmitOpen(true)}
             className="h-8 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold ml-4"
           >
             Finish Exam
