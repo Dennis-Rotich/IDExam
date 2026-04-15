@@ -1,57 +1,27 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import {
-  Clock,
-  Play,
-  FileText,
-  ChevronRight,
-  Loader2
-} from "lucide-react";
+import { Clock, Play, FileText, ChevronRight, Loader2 } from "lucide-react";
 import { scoreColor } from "../../utils/string";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../context/AuthContext";
-import { getStudentSubmissionsApi } from "../../api/submission";
-// Adjust import path to match your types location
-import { type SubmissionResponse } from "../../types/submission";
-
-// --- MOCK DATA (Requires an /exam endpoint, NOT a /submission endpoint) ---
-const UPCOMING_TESTS = [
-  {
-    id: "t1",
-    title: "Advanced Programming Midterm",
-    subject: "CS301",
-    instructor: "Prof. Velez",
-    daysAway: 0.5,
-    duration: "90m",
-    open: true,
-  },
-  {
-    id: "t2",
-    title: "Graph Algorithms Assessment",
-    subject: "CS201",
-    instructor: "Dr. Okonkwo",
-    daysAway: 3,
-    duration: "60m",
-    open: true,
-  },
-];
+// Ensure this API is exported in your api/exam.ts file
+import { getAssignedExamsApi } from "../../api/exam";
 
 export function StudentOverview() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
-  // State for dynamic data
-  const [submissions, setSubmissions] = useState<any[]>([]);
+
+  // Cleaned up state: only examsData and isLoading are needed
+  const [examsData, setExamsData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        // Assumes your API returns { success: true, data: [...] }
-        const res = await getStudentSubmissionsApi(1, 10);
-        // @ts-ignore - adjust based on your exact SubmissionsListResponse shape
-        setSubmissions(res.data || []); 
+        // Only one API call needed now! Your backend handles the joins.
+        const res = await getAssignedExamsApi();
+        setExamsData(res || []);
       } catch (error) {
         console.error("Failed to load dashboard data", error);
       } finally {
@@ -62,48 +32,81 @@ export function StudentOverview() {
     fetchDashboardData();
   }, []);
 
-  // --- DYNAMIC CALCULATIONS ---
-  
-  // 1. Filter Submissions
-  const inProgressSubmissions = submissions.filter(s => s.status === 'in-progress');
-  const completedSubmissions = submissions.filter(s => s.status === 'submitted' || s.status === 'graded');
-  const gradedSubmissions = submissions.filter(s => s.status === 'graded');
+  // --- DYNAMIC CALCULATIONS USING YOUR BACKEND PAYLOAD ---
 
-  // 2. Map Urgent Items (In-Progress)
-  const URGENT_ITEMS = inProgressSubmissions.map(sub => ({
-    id: sub._id,
-    type: "in-progress",
-    title: sub.exam?.title || "Active Exam",
-    detail: "In Progress (Paused)",
-    action: "Resume",
-    link: `/exam/${sub.exam?._id || sub.exam}`,
-    iconColor: "text-blue-500",
-    icon: Clock,
-  }));
+  // 1. Urgent Items (In-Progress)
+  const URGENT_ITEMS = examsData
+    .filter((exam) => exam.inProgress)
+    .map((exam) => ({
+      id: exam.id,
+      title: exam.title,
+      detail: "In Progress (Paused)",
+      action: "Resume",
+      link: `/exam/${exam.id}`,
+      iconColor: "text-blue-500",
+      icon: Clock,
+    }));
 
-  // 3. Map Recent Results
-  const RECENT_RESULTS = completedSubmissions
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 5) // Keep it to the latest 5
-    .map(sub => ({
-      id: sub._id,
-      title: sub.exam?.title || "Completed Exam",
-      subject: sub.exam?.subject || "General",
-      score: sub.totalScore || 0,
-      passed: sub.passed || false,
-      date: new Date(sub.updatedAt).toLocaleDateString(),
+  // 2. Upcoming / Available Exams
+  const upcomingTests = examsData
+    .filter(
+      (exam) =>
+        exam.availability === "available" || exam.availability === "upcoming",
+    )
+    .map((exam) => {
+      const now = new Date();
+      const fromDate = new Date(exam.availableFrom);
+      const timeDiff = fromDate.getTime() - now.getTime();
+      const daysAway =
+        timeDiff > 0 ? Math.ceil(timeDiff / (1000 * 3600 * 24)) : 0;
+
+      return {
+        id: exam.id,
+        title: exam.title,
+        subject: exam.subject || "General",
+        instructor: exam.instructorName,
+        daysAway: daysAway,
+        duration: `${exam.durationMinutes}m`,
+        open: exam.availability === "available",
+      };
+    });
+
+  // 3. Recent Results (Completed)
+  const RECENT_RESULTS = examsData
+    .filter((exam) => exam.availability === "completed")
+    // If you add an updatedAt field to your backend payload later, you can sort by it here
+    .slice(0, 5)
+    .map((exam) => ({
+      id: exam.submission?._id || exam.id,
+      title: exam.title,
+      subject: exam.subject || "General",
+      score: exam.score || 0,
+      passed: exam.submission?.passed || false, // Assumes submission object has 'passed'
+      date: exam.submission?.submittedAt
+        ? new Date(exam.submission.submittedAt).toLocaleDateString()
+        : "Recently",
     }));
 
   // 4. Calculate Stats
-  const totalGradedScore = gradedSubmissions.reduce((acc, curr) => acc + (curr.totalScore || 0), 0);
-  const avgScore = gradedSubmissions.length > 0 ? Math.round(totalGradedScore / gradedSubmissions.length) : 0;
-  
-  const passedCount = gradedSubmissions.filter(s => s.passed).length;
-  const passRate = gradedSubmissions.length > 0 ? Math.round((passedCount / gradedSubmissions.length) * 100) : 0;
+  const gradedExams = examsData.filter(
+    (exam) => exam.score !== null && exam.score !== undefined,
+  );
+  const totalScore = gradedExams.reduce((acc, curr) => acc + curr.score, 0);
+  const avgScore =
+    gradedExams.length > 0 ? Math.round(totalScore / gradedExams.length) : 0;
+
+  // Assumes pass mark is roughly 50% if not explicitly provided, adjust as needed
+  const passedCount = gradedExams.filter(
+    (exam) => exam.submission?.passed || exam.score >= 50,
+  ).length;
+  const passRate =
+    gradedExams.length > 0
+      ? Math.round((passedCount / gradedExams.length) * 100)
+      : 0;
 
   const STATS = {
     avgScore,
-    completed: completedSubmissions.length,
+    completed: examsData.filter((e) => e.availability === "completed").length,
     passRate,
   };
 
@@ -118,11 +121,6 @@ export function StudentOverview() {
   return (
     <div className="mx-auto space-y-10 pb-12 text-foreground text-left px-2">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border">
-        <div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {user?.institution || "tAhinI University"} • {user?.role === "student" ? "Student Portal" : ""}
-          </p>
-        </div>
         <div className="flex gap-8 text-sm">
           <div>
             <p className="text-muted-foreground mb-1">Avg Score</p>
@@ -180,21 +178,21 @@ export function StudentOverview() {
 
       {/* 3. SPLIT LAYOUT */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-        {/* LEFT: Upcoming (Still Mocked) */}
+        {/* LEFT: Upcoming Exams */}
         <div className="space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-border">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               Upcoming Deadlines
             </h2>
             <Link
-              to="/student/tests"
+              to="/student/exams"
               className="text-xs text-blue-500 hover:text-blue-400"
             >
               View All
             </Link>
           </div>
           <div className="space-y-1">
-            {UPCOMING_TESTS.map((test) => (
+            {upcomingTests.map((test) => (
               <div
                 key={test.id}
                 className="flex items-center justify-between py-3 px-2 hover:bg-muted/10 rounded-md transition-colors"
@@ -204,7 +202,10 @@ export function StudentOverview() {
                     {test.title}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {test.subject} • Due in {test.daysAway} days
+                    {test.subject} •{" "}
+                    {test.daysAway > 0
+                      ? `Opens in ${test.daysAway} days`
+                      : "Currently Open"}
                   </p>
                 </div>
                 {test.open ? (
@@ -223,8 +224,10 @@ export function StudentOverview() {
                 )}
               </div>
             ))}
-            {UPCOMING_TESTS.length === 0 && (
-              <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">No upcoming exams.</p>
+            {upcomingTests.length === 0 && (
+              <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">
+                No upcoming exams assigned to you.
+              </p>
             )}
           </div>
         </div>
@@ -275,7 +278,9 @@ export function StudentOverview() {
               </div>
             ))}
             {RECENT_RESULTS.length === 0 && (
-              <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">No recent results found.</p>
+              <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">
+                No recent results found.
+              </p>
             )}
           </div>
         </div>

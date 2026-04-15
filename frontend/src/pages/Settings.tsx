@@ -1,4 +1,3 @@
-// pages/Settings.tsx
 import { User, Shield, Server, Users, GraduationCap } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import {
@@ -14,8 +13,8 @@ import { type UserRole } from "../config/routes";
 import { AccountTab } from "../components/Settings/Tabs/AccountTab";
 import { SecurityTab } from "../components/Settings/Tabs/SecurityTab";
 import { StudentLearningTab } from "../components/Settings/Tabs/StudentLearningTab";
-// import { StudentLearningTab } from "../components/Settings/Tabs/StudentLearningTab";
 // import { AdminPlatformTab } from "../components/Settings/Tabs/AdminPlatformTab";
+// import { AdminUsersTab } from "../components/Settings/Tabs/AdminUsersTab";
 
 const PAGE_META: Record<
   UserRole,
@@ -59,7 +58,8 @@ const ROLE_TABS: Record<
 };
 
 export function Settings() {
-  const { user, isLoading } = useAuth();
+  // Extract a refresh method from your auth context to update the global nav bar on save
+  const { user, isLoading, refreshUser } = useAuth(); 
 
   if (isLoading || !user) {
     return (
@@ -74,9 +74,9 @@ export function Settings() {
   const tabs = ROLE_TABS[role];
 
   return (
-    <div className="mx-auto space-y-6 pb-12 text-foreground px-2">
+    <div className="mx-auto space-y-6 pb-12 text-foreground px-2 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="text-left flex items-start justify-between">
+      <div className="text-left flex items-start justify-between pb-4 border-b border-border">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground">
             Settings
@@ -92,41 +92,47 @@ export function Settings() {
       </div>
 
       {/* Dynamic Tabs */}
-      <Tabs defaultValue={tabs[0].value} className="space-y-4">
+      <Tabs defaultValue={tabs[0].value} className="space-y-6">
         <TabsList
-          className="grid w-full bg-muted"
+          className="grid w-full bg-muted/50 p-1"
           style={{
             gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
             maxWidth: `${tabs.length * 130}px`,
           }}
         >
           {tabs.map(({ value, icon: Icon, label }) => (
-            <TabsTrigger key={value} value={value}>
+            <TabsTrigger key={value} value={value} className="text-xs font-medium">
               <Icon className="w-4 h-4 mr-2" /> {label}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {/* Tab Routing */}
-        <TabsContent value="account">
-          <AccountTab user={user} role={role} />
-        </TabsContent>
+        {/* Tab Routing (Cleaned up duplication) */}
+        {(role === "instructor" || role === "student") && (
+          <TabsContent value="account" className="mt-0 outline-none">
+            <AccountTab user={user} role={role} onUpdateSuccess={refreshUser} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="security">
+        <TabsContent value="security" className="mt-0 outline-none">
           <SecurityTab />
         </TabsContent>
 
-        <TabsContent value="account">
-          <AccountTab user={user} role={role} />
-        </TabsContent>
-
-        <TabsContent value="security">
-          <StudentLearningTab user={user} />
-        </TabsContent>
         {role === "student" && (
-          <TabsContent value="learning">
-            <StudentLearningTab user={user} />
+          <TabsContent value="learning" className="mt-0 outline-none">
+            <StudentLearningTab user={user} onUpdateSuccess={refreshUser} />
           </TabsContent>
+        )}
+
+        {role === "admin" && (
+          <>
+            <TabsContent value="platform" className="mt-0 outline-none">
+              {/* <AdminPlatformTab /> */}
+            </TabsContent>
+            <TabsContent value="users" className="mt-0 outline-none">
+              {/* <AdminUsersTab /> */}
+            </TabsContent>
+          </>
         )}
       </Tabs>
     </div>

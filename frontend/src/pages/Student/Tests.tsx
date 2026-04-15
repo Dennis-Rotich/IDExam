@@ -19,7 +19,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { FeedbackModal } from "../../components/Student/FeedbackModal";
-import { getAssignedExamsApi} from "../../api/exam";
+import { getAssignedExamsApi } from "../../api/exam";
 import { type BrowseTest } from "@/types/exam";
 import {
   DropdownMenu,
@@ -33,16 +33,11 @@ import {
 type FilterTab = "all" | BrowseTest["availability"];
 
 function getStatusIcon(availability: string, inProgress?: boolean) {
-  if (availability === "completed")
-    return <Check className="w-4 h-4 text-emerald-500" />;
-  if (availability === "locked")
-    return <Lock className="w-4 h-4 text-muted-foreground/50" />;
-  if (availability === "upcoming")
-    return <CalendarClock className="w-4 h-4 text-blue-500" />;
+  if (availability === "completed") return <Check className="w-4 h-4 text-emerald-500" />;
+  if (availability === "locked") return <Lock className="w-4 h-4 text-muted-foreground/50" />;
+  if (availability === "upcoming") return <CalendarClock className="w-4 h-4 text-blue-500" />;
   if (inProgress) return <PlayCircle className="w-4 h-4 text-amber-500" />;
-  return (
-    <div className="w-4 h-4 rounded-full border border-muted-foreground/50" />
-  ); // Available/Not started
+  return <div className="w-4 h-4 rounded-full border border-muted-foreground/50" />; 
 }
 
 export function StudentTestsPage() {
@@ -51,11 +46,8 @@ export function StudentTestsPage() {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
-  const [selectedFeedbackTest, setSelectedFeedbackTest] =
-    useState<BrowseTest | null>(null);
-  const [sortBy, setSortBy] = useState<"dueDate" | "title" | "durationMinutes">(
-    "dueDate",
-  );
+  const [selectedFeedbackTest, setSelectedFeedbackTest] = useState<BrowseTest | null>(null);
+  const [sortBy, setSortBy] = useState<"dueDate" | "title" | "durationMinutes">("dueDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
@@ -66,7 +58,6 @@ export function StudentTestsPage() {
         setTests(data || []);
       } catch (error) {
         console.error("Failed to load tests", error);
-        // You could add a toast.error here
       } finally {
         setIsLoading(false);
       }
@@ -77,21 +68,27 @@ export function StudentTestsPage() {
 
   const filteredAndSorted = tests
     .filter((t) => {
-      const matchesSearch =
-        t.title.toLowerCase().includes(search.toLowerCase()) ||
-        t.subject.toLowerCase().includes(search.toLowerCase());
+      // SAFE FALLBACKS: Prevent crashes if title or subject is null/undefined
+      const titleTarget = (t.title || "").toLowerCase();
+      const subjectTarget = (t.subject || "").toLowerCase();
+      const searchLower = search.toLowerCase();
+      
+      const matchesSearch = titleTarget.includes(searchLower) || subjectTarget.includes(searchLower);
       const matchesFilter = filter === "all" || t.availability === filter;
+      
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
       let comparison = 0;
       if (sortBy === "dueDate") {
-        comparison =
-          new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        // Safe date comparison with fallbacks
+        const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        comparison = dateA - dateB;
       } else if (sortBy === "title") {
-        comparison = a.title.localeCompare(b.title);
+        comparison = (a.title || "").localeCompare(b.title || "");
       } else if (sortBy === "durationMinutes") {
-        comparison = a.durationMinutes - b.durationMinutes;
+        comparison = (a.durationMinutes || 0) - (b.durationMinutes || 0);
       }
       return sortOrder === "asc" ? comparison : -comparison;
     });
@@ -153,28 +150,19 @@ export function StudentTestsPage() {
                 Sort By
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setSortBy("dueDate")}
-                className="cursor-pointer flex justify-between"
-              >
+              <DropdownMenuItem onClick={() => setSortBy("dueDate")} className="cursor-pointer flex justify-between">
                 <div className="flex items-center">
                   <CalendarDays className="mr-2 h-4 w-4" /> Due Date
                 </div>
                 {sortBy === "dueDate" && <Check className="h-4 w-4" />}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setSortBy("title")}
-                className="cursor-pointer flex justify-between"
-              >
+              <DropdownMenuItem onClick={() => setSortBy("title")} className="cursor-pointer flex justify-between">
                 <div className="flex items-center">
                   <ArrowDownAZ className="mr-2 h-4 w-4" /> Title
                 </div>
                 {sortBy === "title" && <Check className="h-4 w-4" />}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setSortBy("durationMinutes")}
-                className="cursor-pointer flex justify-between"
-              >
+              <DropdownMenuItem onClick={() => setSortBy("durationMinutes")} className="cursor-pointer flex justify-between">
                 <div className="flex items-center">
                   <Clock className="mr-2 h-4 w-4" /> Duration
                 </div>
@@ -186,20 +174,11 @@ export function StudentTestsPage() {
                 Order
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
-                className="cursor-pointer"
-              >
+              <DropdownMenuItem onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")} className="cursor-pointer">
                 {sortOrder === "asc" ? (
-                  <>
-                    <ArrowUp className="mr-2 h-4 w-4" /> Ascending
-                  </>
+                  <><ArrowUp className="mr-2 h-4 w-4" /> Ascending</>
                 ) : (
-                  <>
-                    <ArrowDown className="mr-2 h-4 w-4" /> Descending
-                  </>
+                  <><ArrowDown className="mr-2 h-4 w-4" /> Descending</>
                 )}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -211,7 +190,7 @@ export function StudentTestsPage() {
       <div className="w-full text-sm">
         <div className="flex items-center justify-between py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           <div className="flex justify-between gap-1">
-            <div className="">Status</div>
+            <div>Status</div>
             <div>Title & Subject</div>
           </div>
           <div className="hidden md:flex items-center gap-6 shrink-0 pl-4">
@@ -237,79 +216,74 @@ export function StudentTestsPage() {
         )}
 
         {/* LIST BODY */}
-        {!isLoading &&
-          filteredAndSorted.map((test, idx) => (
-            <div
-              key={test.id}
-              className={`flex items-center justify-between py-3 px-4 transition-colors rounded-md ${idx % 2 === 0 ? "bg-muted/10" : "bg-transparent"} hover:bg-muted/30`}
-            >
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-5 shrink-0 flex justify-center">
-                  {getStatusIcon(test.availability, test.inProgress)}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="truncate font-medium text-foreground">
-                    {test.title}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {test.subject} • {test.instructorName}
-                  </span>
-                </div>
+        {!isLoading && filteredAndSorted.map((test, idx) => (
+          <div
+            key={test.id}
+            className={`flex items-center justify-between py-3 px-4 transition-colors rounded-md ${idx % 2 === 0 ? "bg-muted/10" : "bg-transparent"} hover:bg-muted/30`}
+          >
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="w-5 shrink-0 flex justify-center">
+                {getStatusIcon(test.availability, test.inProgress)}
               </div>
-
-              <div className="flex items-center gap-6 shrink-0 pl-4">
-                <span className="hidden md:inline-block w-20 text-left text-muted-foreground">
-                  {test.questionCount} Qs
+              <div className="flex flex-col min-w-0">
+                <span className="truncate font-medium text-foreground">
+                  {test.title}
                 </span>
-                <span className="hidden md:inline-block w-20 text-left text-muted-foreground">
-                  {test.durationMinutes}m
+                <span className="text-xs text-muted-foreground">
+                  {test.subject || "General"} • {test.instructorName || "Instructor"}
                 </span>
-                <span className="hidden md:inline-block w-32 text-left text-muted-foreground font-mono text-xs">
-                  {new Date(test.dueDate).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-
-                <div className="w-24 flex justify-end">
-                  {test.availability === "completed" && (
-                    // Opens the summary modal, not the full review route
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => setSelectedFeedbackTest(test)}
-                    >
-                      {test.score}% <FileText className="w-3 h-3 ml-2" />
-                    </Button>
-                  )}
-                  {test.availability === "available" && (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 px-2 text-xs text-blue-500 hover:text-blue-400 hover:bg-blue-500/10"
-                    >
-                      <Link to={`/exam/${test.id}`}>
-                        {test.inProgress ? "Resume" : "Start"}{" "}
-                        <ChevronRight className="w-3 h-3 ml-1" />
-                      </Link>
-                    </Button>
-                  )}
-                  {(test.availability === "locked" ||
-                    test.availability === "upcoming") && (
-                    <span className="text-xs text-muted-foreground/50 pr-2">
-                      Locked
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
-          ))}
+
+            <div className="flex items-center gap-6 shrink-0 pl-4">
+              <span className="hidden md:inline-block w-20 text-left text-muted-foreground">
+                {test.questionCount || 0} Qs
+              </span>
+              <span className="hidden md:inline-block w-20 text-left text-muted-foreground">
+                {test.durationMinutes || 0}m
+              </span>
+              <span className="hidden md:inline-block w-32 text-left text-muted-foreground font-mono text-xs">
+                {test.dueDate ? new Date(test.dueDate).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                }) : "No limit"}
+              </span>
+
+              <div className="w-24 flex justify-end">
+                {test.availability === "completed" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setSelectedFeedbackTest(test)}
+                  >
+                    {test.score !== null ? `${test.score}%` : 'Grading'} <FileText className="w-3 h-3 ml-2" />
+                  </Button>
+                )}
+                {test.availability === "available" && (
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs text-blue-500 hover:text-blue-400 hover:bg-blue-500/10"
+                  >
+                    <Link to={`/exam/${test.id}`}>
+                      {test.inProgress ? "Resume" : "Start"} <ChevronRight className="w-3 h-3 ml-1" />
+                    </Link>
+                  </Button>
+                )}
+                {(test.availability === "locked" || test.availability === "upcoming") && (
+                  <span className="text-xs text-muted-foreground/50 pr-2">
+                    Locked
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Modal renders the summary data injected via the selectedFeedbackTest object */}
       <FeedbackModal
         test={selectedFeedbackTest}
         onClose={() => setSelectedFeedbackTest(null)}

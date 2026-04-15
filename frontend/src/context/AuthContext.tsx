@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { toast } from "sonner";
 import { type User, type UserRole, type RegisterUserRequest, type LoginUserRequest } from "../types/auth";
-import { loginUserApi, registerUserApi } from "../api/auth"
+import { loginUserApi, registerUserApi, getUserProfileApi } from "../api/auth"
 import { apiClient } from "../lib/axiosApi";
 
 interface AuthContextValue {
@@ -10,6 +10,7 @@ interface AuthContextValue {
   signUp: (data: RegisterUserRequest) => Promise<void>;
   logIn: (data: LoginUserRequest) => Promise<void>;
   logOut: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -101,8 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const refreshUser = async () => {
+    try {
+      const response = await getUserProfileApi();
+      if (response.success) {
+        setUser(response.user);
+      }
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signUp, logIn, logOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signUp, logIn, logOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
