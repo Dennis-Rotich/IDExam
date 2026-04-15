@@ -33,6 +33,6 @@ submissionRouter.post('/submit/:sessionId', verifyToken, studentSubmit);
 submissionRouter.post('/finalize/:sessionId', verifyToken, finalizeExam);
 
 // Run code without submitting/saving (Dry run)
-submissionRouter.post('/run', runCode);
+submissionRouter.post('/run', verifyToken, runCode);
  
 export default submissionRouter;
