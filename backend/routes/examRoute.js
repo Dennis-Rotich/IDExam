@@ -7,7 +7,8 @@ import {
     updateExam, 
     deleteExam, 
     addQuestionToExam,
-    getExamSubmissions
+    getExamSubmissions,
+    getAssignedExams
 } from "../controllers/examController.js";
 import { verifyToken, isTeacher } from "../middlewares/auth.js";
 
@@ -38,5 +39,7 @@ examRouter.delete('/:examId', verifyToken, isTeacher, deleteExam);
 // STUDENT ROUTES 
 // Get sanitized exam (Hidden test cases removed) - Must be at the bottom!
 examRouter.get('/:examId', verifyToken, getExam);
+
+examRouter.get('/student/assigned', verifyToken, getAssignedExams);
 
 export default examRouter;
