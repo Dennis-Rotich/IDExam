@@ -6,7 +6,7 @@ import axios from "axios";
 export const startSubmission = async (req, res) => {
   try {
     const { examId } = req.body;
-    const studentId = req.user.id; 
+    const studentId = req.user.id;
 
     // 1. Fetch the exam to get the duration limit
     const exam = await examModel.findById(examId);
@@ -14,31 +14,25 @@ export const startSubmission = async (req, res) => {
       return res.status(404).json({ success: false, message: "Exam not found or inactive." });
     }
 
-    // 2. RESUME LOGIC: Check if the student already has a session for this exam
-    let submission = await submissionModel.findOne({
-      exam: examId,
-      student: studentId
-    });
-
-    if (submission) {
-      // If they already started, just return the existing session so they can resume
-      return res.status(200).json({ success: true, submission });
-    }
-
-    // 3. NEW SESSION: Calculate the exact end time based on exam duration
+    // 2. Atomically find existing session or create a new one
     const startedAt = new Date();
     const endsAt = new Date(startedAt.getTime() + exam.durationInMinutes * 60000);
 
-    // 4. Create the blank submission document in MongoDB
-    submission = await submissionModel.create({
-      exam: examId,
-      student: studentId,
-      startedAt: startedAt,
-      endsAt: endsAt,
-      status: "in-progress",
-      answers: [],
-      proctoringFlags: []
-    });
+    const submission = await submissionModel.findOneAndUpdate(
+      { exam: examId, student: studentId },
+      {
+        $setOnInsert: {
+          exam: examId,
+          student: studentId,
+          startedAt,
+          endsAt,
+          status: "in-progress",
+          answers: [],
+          proctoringFlags: []
+        }
+      },
+      { upsert: true, returnDocument: "after" }
+    );
 
     res.status(200).json({ success: true, submission });
   } catch (error) {
