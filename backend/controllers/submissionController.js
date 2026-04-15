@@ -13,7 +13,7 @@ export const startSubmission = async (req, res) => {
       return res.status(404).json({ success: false, message: "Exam not found or inactive." });
     }
 
-    // 2. Atomically find existing session or create a new one
+    // Atomic upsert - prevents duplicate key error on concurrent requests (e.g. two devices)
     const startedAt = new Date();
     const endsAt = new Date(startedAt.getTime() + exam.durationInMinutes * 60000);
 
