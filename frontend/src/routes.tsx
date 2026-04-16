@@ -14,7 +14,7 @@ import { InstructorAuth } from "./pages/Auth/InstructorAuth";
 import { AuthLayout } from "./components/Layout/Auth";
 import { StudentTestsPage } from "./pages/Student/Tests";
 import { InstructorTestsPage } from "./pages/Instructor/Tests";
-import { StudentSubmissionReview } from "./pages/Instructor/SubmissionReview";
+import { StudentSubmissionReview } from "./pages/Student/SubmissionReview";
 import { QuestionBank } from "./pages/Instructor/QuestionBank";
 import { NewQuestion } from "./pages/Instructor/NewQuestion";
 import { ProfilePage } from "./pages/Profile";
@@ -33,6 +33,7 @@ import { AdminSystemDocsPage } from "./pages/Admin/AdminSystemDocs";
 import { AdminAuth } from "./pages/Auth/AdminAuth";
 import CreateExam from "./pages/Instructor/CreateExam";
 import ExamSubmissionsPage from "./pages/Instructor/ExamSubmissions";
+import { InstructorSubmissionReview } from "./pages/Instructor/SubmissionReview";
 
 const MainRoutes = () => {
   const routes = [
@@ -189,7 +190,7 @@ const MainRoutes = () => {
             },
             {
               path: "exam/submission/:submissionId",
-              element: <StudentSubmissionReview />,
+              element: <InstructorSubmissionReview />,
             },
             {
               path: "questions/new",
