@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 // 2A. Results of Individual Test Cases
 const testResultSchema = new mongoose.Schema({
-  testCaseId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  testCaseId: { type: mongoose.Schema.Types.ObjectId },
   passed: { type: Boolean, required: true },
   actualOutput: { type: String },
   executionTimeMs: { type: Number },
