@@ -3,7 +3,7 @@ import examModel from "../models/examModel.js";
 import questionModel from '../models/questionModel.js';
 import axios from "axios";
 
-export const startSubmission = async (req, res) => {
+const startSubmission = async (req, res) => {
   try {
     const { examId } = req.body;
     const studentId = req.user.id;
@@ -40,7 +40,7 @@ export const startSubmission = async (req, res) => {
   }
 };
 
-export const updateAnswerScore = async (req, res) => {
+const updateAnswerScore = async (req, res) => {
   try {
     const { sessionId, answerId } = req.params;
     const { score, feedback } = req.body;
@@ -326,7 +326,7 @@ const runCode = async (req, res) => {
   }
 };
 
-export const finalizeExam = async (req, res) => {
+const finalizeExam = async (req, res) => {
   try {
     const { sessionId } = req.params;
 
@@ -349,6 +349,60 @@ export const finalizeExam = async (req, res) => {
   } catch (error) {
     console.error("Finalize Exam Error:", error);
     res.status(500).json({ success: false, message: "Failed to finalize exam." });
+  }
+};
+
+const updateSubmissionStatus = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { status } = req.body;
+
+    // 1. Validate the requested status against your Schema enum
+    const validStatuses = ["in-progress", "submitted", "graded", "abandoned"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid status provided." 
+      });
+    }
+
+    // 2. Fetch the submission and populate the exam to access the passMark
+    const submission = await submissionModel.findById(sessionId).populate("exam");
+
+    if (!submission) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Submission not found." 
+      });
+    }
+
+    // 3. Apply the status update
+    submission.status = status;
+
+    // 4. Smart Graduation Logic: If the instructor is finalizing the grade
+    if (status === "graded") {
+      submission.isGraded = true;
+
+      // Automatically determine if the student passed based on the exam's pass mark (default 50)
+      const passMark = submission.exam?.passMark ?? 50;
+      submission.passed = submission.totalScore >= passMark;
+    }
+
+    await submission.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Submission successfully marked as ${status}.`,
+      submission
+    });
+
+  } catch (error) {
+    console.error("Update Submission Status Error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error while updating submission status.",
+      error: error.message
+    });
   }
 };
 
@@ -426,4 +480,8 @@ export {
   autosave,
   getSubmission,
   getStudentSubmissions,
+  updateAnswerScore,
+  startSubmission,
+  finalizeExam,
+  updateSubmissionStatus
 };
