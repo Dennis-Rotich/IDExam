@@ -390,7 +390,7 @@ export default function ExamSubmissionsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() =>
-                        navigate(`/instructor/submission/${sub._id}`)
+                        navigate(`/instructor/exam/submission/${sub._id}`)
                       }
                       disabled={sub.status === "in-progress"}
                     >
