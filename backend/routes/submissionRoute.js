@@ -23,9 +23,9 @@ submissionRouter.get('/:sessionId', verifyToken, getSubmission);
 // fetch all the student's submissions
 submissionRouter.get('/student/me', verifyToken, getStudentSubmissions);
 
-submissionRouter.patch("/:sessionId/answer/:answerId/score", verifyToken, updateAnswerScore);
+submissionRouter.patch('/:sessionId/answer/:answerId/score', verifyToken, updateAnswerScore);
 
-submissionRouter.patch('/submission/:sessionId/status', verifyToken, updateSubmissionStatus);
+submissionRouter.patch('/:sessionId/status', verifyToken, updateSubmissionStatus);
 
 // Autosave progress during the exam
 submissionRouter.post('/autosave/:sessionId', verifyToken, autosave);
