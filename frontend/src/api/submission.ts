@@ -51,7 +51,7 @@ export const finalizeExamApi = async (sessionId: string) => {
     return response.data;
 };
 
-// NEW: Submit a specific question for actual grading
+// Submit a specific question for actual grading
 export const submitQuestionApi = async (
     sessionId: string, 
     questionId: string,
@@ -66,6 +66,17 @@ export const submitQuestionApi = async (
         return response.data;
     } catch (error) {
         console.error("Submit Question API error:", error);
+        throw error;
+    }
+};
+
+// Update submission status to 'graded'
+export const markSubmissionGradedApi = async (submissionId: string): Promise<any> => {
+    try {
+        const response = await apiClient.patch(`/submission/${submissionId}/status`, { status: "graded" });
+        return response.data;
+    } catch (error) {
+        console.error("Mark graded API error:", error);
         throw error;
     }
 };
