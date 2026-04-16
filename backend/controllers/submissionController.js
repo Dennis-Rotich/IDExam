@@ -1,6 +1,6 @@
 import submissionModel from "../models/submissionModel.js";
 import examModel from "../models/examModel.js";
-import questionModel from '../models/questionModel.js';
+import questionModel from "../models/questionModel.js";
 import axios from "axios";
 
 const startSubmission = async (req, res) => {
@@ -10,12 +10,16 @@ const startSubmission = async (req, res) => {
 
     const exam = await examModel.findById(examId);
     if (!exam || !exam.isActive) {
-      return res.status(404).json({ success: false, message: "Exam not found or inactive." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Exam not found or inactive." });
     }
 
     // Atomic upsert - prevents duplicate key error on concurrent requests (e.g. two devices)
     const startedAt = new Date();
-    const endsAt = new Date(startedAt.getTime() + exam.durationInMinutes * 60000);
+    const endsAt = new Date(
+      startedAt.getTime() + exam.durationInMinutes * 60000,
+    );
 
     const submission = await submissionModel.findOneAndUpdate(
       { exam: examId, student: studentId },
@@ -27,16 +31,18 @@ const startSubmission = async (req, res) => {
           endsAt,
           status: "in-progress",
           answers: [],
-          proctoringFlags: []
-        }
+          proctoringFlags: [],
+        },
       },
-      { upsert: true, returnDocument: "after" }
+      { upsert: true, returnDocument: "after" },
     );
 
     res.status(200).json({ success: true, submission });
   } catch (error) {
     console.error("Start Submission Error:", error);
-    res.status(500).json({ success: false, message: "Failed to start exam session." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to start exam session." });
   }
 };
 
@@ -47,12 +53,17 @@ const updateAnswerScore = async (req, res) => {
 
     const submission = await submissionModel.findById(sessionId);
     if (!submission) {
-      return res.status(404).json({ success: false, message: "Submission not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Submission not found" });
     }
 
     const answer = submission.answers.id(answerId);
     if (!answer) {
-      return res.status(404).json({ success: false, message: "Answer not found in this submission" });
+      return res.status(404).json({
+        success: false,
+        message: "Answer not found in this submission",
+      });
     }
 
     answer.score = Number(score);
@@ -61,7 +72,10 @@ const updateAnswerScore = async (req, res) => {
       answer.instructorFeedback = feedback;
     }
 
-    submission.totalScore = submission.answers.reduce((total, ans) => total + (ans.score || 0), 0);
+    submission.totalScore = submission.answers.reduce(
+      (total, ans) => total + (ans.score || 0),
+      0,
+    );
 
     if (submission.status !== "graded") {
       submission.status = "graded";
@@ -72,11 +86,13 @@ const updateAnswerScore = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Score updated successfully",
-      totalScore: submission.totalScore
+      totalScore: submission.totalScore,
     });
   } catch (error) {
     console.error("Update Score Error:", error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
 
@@ -87,7 +103,9 @@ const autosave = async (req, res) => {
     const { questionId, language, answer } = req.body;
 
     if (!questionId || answer === undefined) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
     }
 
     // Try to update existing answer first
@@ -103,7 +121,7 @@ const autosave = async (req, res) => {
           "answers.$.language": language,
         },
       },
-      { returnDocument: "after" }
+      { returnDocument: "after" },
     );
 
     // If no existing answer, push a new one
@@ -115,7 +133,7 @@ const autosave = async (req, res) => {
             answers: { questionId, language, answer },
           },
         },
-        { returnDocument: "after" }
+        { returnDocument: "after" },
       );
 
       if (!result) {
@@ -129,7 +147,9 @@ const autosave = async (req, res) => {
     return res.status(200).json({ status: "success" });
   } catch (error) {
     console.error("Autosave Error:", error);
-    return res.status(500).json({ success: false, message: "Failed to autosave" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to autosave" });
   }
 };
 
@@ -137,152 +157,90 @@ const autosave = async (req, res) => {
 const studentSubmit = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { questionId, language, code } = req.body;
+    const { questionId, studentAnswer, language, executionResults } = req.body;
 
-    const submission = await submissionModel.findOne({
-      _id: sessionId,
-      status: "in-progress",
-    });
-
-    if (!submission) {
-      return res.status(404).json({ success: false, message: "Active submission session not found." });
-    }
-
+    const submission = await submissionModel.findById(sessionId);
     const question = await questionModel.findById(questionId);
-    if (!question) {
-      return res.status(404).json({ success: false, message: "Question not found" });
+
+    if (!submission || !question) {
+      return res.status(404).json({ success: false, message: "Not found." });
     }
 
-    let testResults = [];
-    let passedAll = true;
-    let totalScore = 0;
+    let finalTestResults = [];
+    let autoGradeStatus = "Pending";
+    let calculatedScore = 0;
 
-    for (const testCase of question.testCases) {
-      const pistonPayload = {
-        language: language === "javascript" ? "js" : language,
-        version: "*",
-        files: [{ name: "main", content: code }],
-        stdin: testCase.input || "",
-        run_timeout: 3000,
-        compile_timeout: 3000,
-      };
+    // Handle Coding Questions
+    if (question.type === "CODING" || !question.type) {
+      if (executionResults && executionResults.length > 0) {
+        finalTestResults = executionResults.map((result, index) => {
+          const originalTestCase = question.testCases[index];
+          if (!originalTestCase) throw new Error("Test case mismatch.");
 
-      try {
-        const { data } = await axios.post("http://68.210.224.3/api/v2/execute", pistonPayload);
-
-        const compileCode = data.compile ? data.compile.code : 0;
-        const compileOutput = data.compile ? data.compile.output : "";
-        const runCodeStatus = data.run ? data.run.code : 0;
-        const runOutput = data.run ? data.run.output : "";
-
-        const actualOutputClean = runOutput.trim();
-        const expectedOutputClean = (testCase.expectedOutput || "").trim();
-
-        const isPassed = compileCode === 0 && runCodeStatus === 0 && actualOutputClean === expectedOutputClean;
-
-        let errorMessage = null;
-        let errorType = null;
-
-        if (!isPassed) {
-          passedAll = false;
-
-          if (data.message) {
-            errorMessage = data.message;
-            errorType = "System Error";
-          } else if (compileCode !== 0) {
-            errorMessage = compileOutput;
-            errorType = "Compilation Error";
-          } else if (runCodeStatus !== 0) {
-            errorMessage = runOutput;
-            errorType = "Runtime Error";
-          } else {
-            errorMessage = `Expected: ${expectedOutputClean}, Got: ${actualOutputClean}`;
-            errorType = "Wrong Answer";
-          }
-        }
-
-        if (isPassed) totalScore += testCase.points || 1;
-
-        testResults.push({
-          testCaseId: testCase._id,
-          passed: isPassed,
-          actualOutput: runOutput,
-          executionTimeMs: 0,
-          errorMessage: isPassed ? null : errorMessage,
-          errorType: errorType
+          return {
+            testCaseId: originalTestCase._id,
+            passed: result.passed,
+            actualOutput: result.output,
+            errorMessage: result.error,
+          };
         });
 
-      } catch (execError) {
-        // FIX: if one test case execution throws, record it as a failure instead of crashing the whole request
-        passedAll = false;
-        testResults.push({
-          testCaseId: testCase._id,
-          passed: false,
-          actualOutput: "",
-          executionTimeMs: 0,
-          errorMessage: "Execution service error",
-          errorType: "System Error"
-        });
+        const allPassed = finalTestResults.every((tc) => tc.passed);
+        autoGradeStatus = allPassed ? "Accepted" : "Wrong Answer";
+        calculatedScore = allPassed ? question.pointsWeight : 0;
       }
     }
-
-    let overallStatus = "Accepted";
-    if (!passedAll) {
-      const firstError = testResults.find((tr) => !tr.passed);
-      overallStatus = firstError ? firstError.errorType : "Wrong Answer";
+    // Handle Multiple Choice
+    else if (question.type === "MULTIPLE_CHOICE") {
+      const isCorrect = studentAnswer === question.correctAnswer;
+      autoGradeStatus = isCorrect ? "Accepted" : "Wrong Answer";
+      calculatedScore = isCorrect ? question.pointsWeight : 0;
+    }
+    // Handle Theory / Short Answer
+    else {
+      autoGradeStatus = "Pending";
+      calculatedScore = 0;
     }
 
-    const cleanedTestResults = testResults.map(({ errorType, ...rest }) => rest);
+    // Check if answer already exists to update it, otherwise push new
+    const existingAnswerIndex = submission.answers.findIndex(
+      (ans) => ans.questionId.toString() === questionId,
+    );
 
-    const newQuestionSubmission = {
-      questionId,
-      language,
-      code,
-      status: overallStatus,
-      testResults: cleanedTestResults,
-      score: totalScore,
+    const answerPayload = {
+      questionId: question._id,
+      answer: studentAnswer,
+      language: language || "text",
+      status: autoGradeStatus,
+      score: calculatedScore,
+      testResults: finalTestResults,
     };
 
-    await submissionModel.updateOne(
-      { _id: sessionId },
-      { $pull: { answers: { questionId } } }
-    );
-
-    await submissionModel.findOneAndUpdate(
-      { _id: sessionId },
-      {
-        $push: { answers: newQuestionSubmission },
-        $inc: { totalScore: totalScore },
-      },
-      { returnDocument: "after" }
-    );
-
-    // FIX: guard against undefined testCaseId before calling toString()
-    const publicResults = cleanedTestResults.filter((tr) => {
-      if (!tr.testCaseId) return false;
-      const originalTestCase = question.testCases.find(
-        tc => tc._id.toString() === tr.testCaseId.toString()
-      );
-      return originalTestCase && !originalTestCase.isHidden;
-    });
-
-    let studentFacingStatus = "Submitted Successfully";
-    const failedPublicTest = publicResults.find(tr => !tr.passed);
-
-    if (overallStatus === "Compilation Error") {
-      studentFacingStatus = "Compilation Error";
-    } else if (failedPublicTest) {
-      studentFacingStatus = "Public Tests Failed";
+    if (existingAnswerIndex > -1) {
+      submission.answers[existingAnswerIndex] = answerPayload;
+    } else {
+      submission.answers.push(answerPayload);
     }
 
-    res.status(200).json({
-      success: true,
-      status: studentFacingStatus,
-      results: publicResults,
-    });
+    // Recalculate total score
+    submission.totalScore = submission.answers.reduce(
+      (sum, ans) => sum + ans.score,
+      0,
+    );
+
+    await submission.save();
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Question saved.",
+        status: autoGradeStatus,
+      });
   } catch (error) {
-    console.error("Evaluation Error:", error);
-    res.status(500).json({ success: false, message: "Failed to evaluate code." });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
 
@@ -291,7 +249,9 @@ const runCode = async (req, res) => {
     const { language, code } = req.body;
 
     if (!language || !code) {
-      return res.status(400).json({ success: false, message: "Language and code are required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Language and code are required." });
     }
 
     const pistonPayload = {
@@ -303,7 +263,10 @@ const runCode = async (req, res) => {
       compile_timeout: 3000,
     };
 
-    const { data } = await axios.post("http://68.210.224.3/api/v2/execute", pistonPayload);
+    const { data } = await axios.post(
+      "http://68.210.224.3/api/v2/execute",
+      pistonPayload,
+    );
 
     const compileCode = data.compile ? data.compile.code : 0;
     const compileOutput = data.compile ? data.compile.output : "";
@@ -311,7 +274,8 @@ const runCode = async (req, res) => {
     const runOutput = data.run ? data.run.output : "";
 
     const isError = compileCode !== 0 || runCodeStatus !== 0;
-    const actualOutputClean = compileCode !== 0 ? compileOutput.trim() : runOutput.trim();
+    const actualOutputClean =
+      compileCode !== 0 ? compileOutput.trim() : runOutput.trim();
     const finalOutput = data.message ? data.message.trim() : actualOutputClean;
 
     // FIX: return isError and output so the frontend console can display it
@@ -322,7 +286,9 @@ const runCode = async (req, res) => {
     });
   } catch (error) {
     console.error("Execution Error:", error);
-    res.status(500).json({ success: false, message: "Error during code execution." });
+    res
+      .status(500)
+      .json({ success: false, message: "Error during code execution." });
   }
 };
 
@@ -335,20 +301,27 @@ const finalizeExam = async (req, res) => {
       {
         $set: {
           status: "submitted",
-          submittedAt: new Date()
-        }
+          submittedAt: new Date(),
+        },
       },
-      { returnDocument: "after" }
+      { returnDocument: "after" },
     );
 
     if (!submission) {
-      return res.status(404).json({ success: false, message: "Active session not found or already submitted." });
+      return res.status(404).json({
+        success: false,
+        message: "Active session not found or already submitted.",
+      });
     }
 
-    res.status(200).json({ success: true, message: "Exam finalized successfully." });
+    res
+      .status(200)
+      .json({ success: true, message: "Exam finalized successfully." });
   } catch (error) {
     console.error("Finalize Exam Error:", error);
-    res.status(500).json({ success: false, message: "Failed to finalize exam." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to finalize exam." });
   }
 };
 
@@ -357,33 +330,28 @@ const updateSubmissionStatus = async (req, res) => {
     const { sessionId } = req.params;
     const { status } = req.body;
 
-    // 1. Validate the requested status against your Schema enum
+    // 1. Validate status
     const validStatuses = ["in-progress", "submitted", "graded", "abandoned"];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid status provided." 
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid status." });
     }
 
-    // 2. Fetch the submission and populate the exam to access the passMark
-    const submission = await submissionModel.findById(sessionId).populate("exam");
-
+    // 2. Fetch the overall submission
+    const submission = await submissionModel
+      .findById(sessionId)
+      .populate("exam");
     if (!submission) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Submission not found." 
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Submission not found." });
     }
 
-    // 3. Apply the status update
+    // 3. Update status and handle passing logic
     submission.status = status;
-
-    // 4. Smart Graduation Logic: If the instructor is finalizing the grade
     if (status === "graded") {
       submission.isGraded = true;
-
-      // Automatically determine if the student passed based on the exam's pass mark (default 50)
       const passMark = submission.exam?.passMark ?? 50;
       submission.passed = submission.totalScore >= passMark;
     }
@@ -392,17 +360,13 @@ const updateSubmissionStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Submission successfully marked as ${status}.`,
-      submission
+      message: `Submission marked as ${status}.`,
+      submission,
     });
-
   } catch (error) {
-    console.error("Update Submission Status Error:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Server error while updating submission status.",
-      error: error.message
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
 
@@ -410,13 +374,16 @@ const getSubmission = async (req, res) => {
   try {
     const { sessionId } = req.params;
 
-    let submission = await submissionModel.findOne({ _id: sessionId })
+    let submission = await submissionModel
+      .findOne({ _id: sessionId })
       .populate("student", "name studentId email")
       .populate("exam", "title courseCode examCode totalPoints")
       .populate("answers.questionId");
 
     if (!submission) {
-      return res.status(404).json({ success: false, message: "Submission not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Submission not found" });
     }
 
     // Lazy evaluation: auto-submit if time has expired
@@ -429,7 +396,9 @@ const getSubmission = async (req, res) => {
     res.status(200).json({ success: true, submission });
   } catch (error) {
     console.error("Fetch Submission Error:", error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
 
@@ -483,5 +452,5 @@ export {
   updateAnswerScore,
   startSubmission,
   finalizeExam,
-  updateSubmissionStatus
+  updateSubmissionStatus,
 };
