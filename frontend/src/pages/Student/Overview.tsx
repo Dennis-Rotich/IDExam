@@ -3,13 +3,11 @@ import { useState, useEffect } from "react";
 import { Clock, Play, FileText, ChevronRight, Loader2 } from "lucide-react";
 import { scoreColor } from "../../utils/string";
 import { Button } from "../../components/ui/button";
-import { useAuth } from "../../context/AuthContext";
 // Ensure this API is exported in your api/exam.ts file
 import { getAssignedExamsApi } from "../../api/exam";
 
 export function StudentOverview() {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   // Cleaned up state: only examsData and isLoading are needed
   const [examsData, setExamsData] = useState<any[]>([]);

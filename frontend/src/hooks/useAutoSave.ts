@@ -52,7 +52,7 @@ export const useAutoSave = () => {
     //Immediately show "Saving..." when code changes
     setSaveStatus("saving");
     //Queue the save
-    debouncedSave(currentCode, questionId);
+    debouncedSave(String(currentCode), questionId);
     //Cancel the timer if the component unmounts
     return () => debouncedSave.cancel();
   }, [currentCode, questionId, debouncedSave, setSaveStatus]);

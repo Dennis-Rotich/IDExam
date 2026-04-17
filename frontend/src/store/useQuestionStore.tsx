@@ -1,13 +1,5 @@
 import { create } from "zustand";
-import { type Question } from "../types/exam";
-
-// Updated to use _id to match MongoDB ObjectId strings
-export interface TestCase {
-  _id?: string;
-  input: string;
-  expectedOutput: string;
-  isHidden: boolean;
-}
+import { type Question, type TestCase } from "../types/question";
 
 interface QuestionState {
   questions: Question[];
@@ -47,13 +39,13 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       description: "",
       topic: "", 
       difficulty: "Medium", 
-      type: "CODING", // Enforced union type
+      type: "CODING", 
       testCases: [], 
       pointsWeight: 10,
       isPracticeAvailable: true,
       timeLimitMs: 2000,
       memoryLimitKb: 256000,
-      allowedLanguages: ["javascript", "python"],
+      allowedLanguages: ["javascript", "python", "cpp"],
       starterCode: {} 
     }
   }),
@@ -68,7 +60,7 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
     if (!state.activeQuestion) return state;
     const isNew = state.activeQuestion._id === "draft";
     
-    const savedQuestion = {
+    const savedQuestion: Question = {
       ...state.activeQuestion,
       // Assign a temporary ID if local; backend will replace this with a real ObjectId
       _id: isNew ? `temp-${Date.now()}` : state.activeQuestion._id, 
@@ -102,12 +94,15 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 
   addTestCase: () => set((state) => {
     if (!state.activeQuestion) return state;
+    
     const newTC: TestCase = { 
       _id: `tc-temp-${Math.random().toString(36).substring(2, 9)}`, 
       input: "", 
       expectedOutput: "", 
-      isHidden: false 
+      isHidden: false,
+      points: 2 // Matches the Mongoose schema default
     };
+    
     return { 
       activeQuestion: { 
         ...state.activeQuestion, 

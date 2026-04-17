@@ -1,13 +1,6 @@
-import { type SubmissionResponse } from "./submission";
 import { type User } from "./auth";
+import { type TestCase } from "./question";
 
-export interface TestCase {
-  _id?: string;
-  input: string;
-  expectedOutput?: string; // Stripped by backend for students
-  isHidden?: boolean;
-  points?: number;
-}
 
 // We expand the interface slightly to accommodate the Feedback Modal
 export type TestAvailability =

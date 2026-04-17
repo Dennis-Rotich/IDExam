@@ -28,7 +28,6 @@ import {
   X,
 } from "lucide-react";
 import { useExamStore } from "../../store/useExamStore";
-import { EXAM_QUESTIONS } from "../../data/questions";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../context/AuthContext";
 import { getExamApi } from "../../api/exam";
@@ -84,7 +83,7 @@ export const StudentExam = () => {
     return (localStorage.getItem("theme") as "light" | "dark") || "dark";
   });
 
-  const currentQuestion = questions[currentQuestionIndex] || EXAM_QUESTIONS[0];
+  const currentQuestion = questions[currentQuestionIndex];
   const isCodingQuestion =
     currentQuestion?.type === "CODING" || !currentQuestion?.type;
 

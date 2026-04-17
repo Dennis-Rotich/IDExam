@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -9,7 +9,6 @@ import { useAuth } from "../../context/AuthContext";
 import { getExamApi } from "../../api/exam";
 
 export function ExamAuth() {
-  const content = useOutletContext<any>();
   const { logIn, isLoading } = useAuth();
   const navigate = useNavigate();
   

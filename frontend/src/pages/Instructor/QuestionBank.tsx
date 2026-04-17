@@ -76,7 +76,7 @@ export function QuestionBank() {
   };
 
   // 3. Handle Duplicate
-  const handleDuplicate = (q: Question) => {
+  const handleDuplicate = () => {
     toast.info("Duplication feature coming soon!");
   };
 
@@ -287,7 +287,7 @@ export function QuestionBank() {
                         ) : (
                           <DropdownMenuItem
                             className="cursor-pointer hover:bg-muted"
-                            onClick={() => handleDuplicate(q)}
+                            onClick={() => handleDuplicate()}
                           >
                             <Copy className="mr-2 h-4 w-4 text-muted-foreground" />{" "}
                             Duplicate to Mine

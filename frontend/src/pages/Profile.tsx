@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { ScrollArea } from "../components/ui/scroll-area";
-import { useQuestionStore, type Question } from "../store/useQuestionStore";
+import { useQuestionStore } from "../store/useQuestionStore";
+import { useAuth } from "../context/AuthContext";
+import { type Question } from "../types/question";
 
 // Concept: Dummy Activity Log (in a real app, this would be a real data stream)
 const RECENT_ACTIVITY = [
@@ -18,14 +20,24 @@ const RECENT_ACTIVITY = [
 ];
 
 export function ProfilePage() {
-  // Connection point: Pull your created questions from the store
+  const { user } = useAuth();
   const { questions } = useQuestionStore();
 
-  // Filter your questions that have high usage
+  // Filter for questions created by the current user
   const yourTopQuestions = questions
-    .filter((q) => q.author === "You" && (q.usage || 0) > 0)
-    .sort((a, b) => (b.usage || 0) - (a.usage || 0))
-    .slice(0, 3); // Top 3
+    .filter((q) => {
+      const isMine = typeof q.createdBy === "string" 
+        ? q.createdBy === user?.id 
+        : (q.createdBy as any)?._id === user?.id;
+      return isMine;
+    })
+    .slice(0, 3); // Display up to 3 recent/top questions
+
+  function getDifficultyColor(diff: string) {
+    if (diff === "Easy") return "text-emerald-500 border-emerald-500/20 bg-emerald-500/10";
+    if (diff === "Medium") return "text-amber-500 border-amber-500/20 bg-amber-500/10";
+    return "text-destructive border-destructive/20 bg-destructive/10";
+  }
 
   return (
     <div className="mx-auto space-y-6 pb-12 text-foreground text-left px-2">
@@ -39,12 +51,12 @@ export function ProfilePage() {
           </Link>
           <div>
             <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3 text-foreground">
-              John Doe
+              {user?.name || "Instructor Profile"}
               <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-normal text-xs">
                 Active Instructor
               </Badge>
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">Platform ID: inst-1 • tAhinI University Computer Science</p>
+            <p className="text-sm text-muted-foreground mt-1">Platform ID: {user?.id?.slice(-6) || "inst-1"} • tAhinI University Computer Science</p>
           </div>
         </div>
         <Link to="/instructor/settings">
@@ -87,11 +99,13 @@ export function ProfilePage() {
             <div className="flex items-center space-x-4">
               <Avatar className="h-24 w-24 border border-border">
                 <AvatarImage src="" />
-                <AvatarFallback className="text-4xl bg-muted text-muted-foreground">IN</AvatarFallback>
+                <AvatarFallback className="text-4xl bg-muted text-muted-foreground">
+                  {user?.name?.substring(0, 2).toUpperCase() || "IN"}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-1">
-                <h3 className="text-lg font-bold text-foreground leading-snug">Dr. John Doe, Ph.D.</h3>
-                <p className="text-sm text-muted-foreground">admin@tahini.com <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-600 bg-emerald-500/5 px-1 py-0 ml-1">Verified</Badge></p>
+                <h3 className="text-lg font-bold text-foreground leading-snug">Dr. {user?.name || "John Doe"}, Ph.D.</h3>
+                <p className="text-sm text-muted-foreground">{user?.email || "admin@tahini.com"} <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-600 bg-emerald-500/5 px-1 py-0 ml-1">Verified</Badge></p>
                 <p className="text-sm font-semibold text-foreground">Department / Bio</p>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">Head of Computer Science, Specializing in Distributed Systems & Secure Algorithm Design.</p>
               </div>
@@ -147,35 +161,42 @@ export function ProfilePage() {
       <Card className="bg-card border-border shadow-sm text-left col-span-1 lg:col-span-3">
         <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border bg-muted/30">
           <CardTitle className="text-sm font-medium text-foreground uppercase tracking-wider">Your Question Bank Impact</CardTitle>
-          <p className="text-xs text-muted-foreground">Most utilized questions across your institution's network.</p>
+          <p className="text-xs text-muted-foreground">Recent questions you have contributed to the network.</p>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/50 border-b border-border">
               <TableRow className="hover:bg-transparent border-border">
-                <TableHead className="text-muted-foreground font-medium">Question Title & category</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-right">Total Usage</TableHead>
+                <TableHead className="text-muted-foreground font-medium">Question Title & Category</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-right">Points Weight</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {yourTopQuestions.length > 0 ? (
                 yourTopQuestions.map((q: Question) => (
-                  <TableRow key={q.id} className="border-border hover:bg-muted/50 transition-colors">
+                  <TableRow key={q._id} className="border-border hover:bg-muted/50 transition-colors">
                     <TableCell className="py-3">
-                      <div className="font-medium text-foreground">{q.title}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{q.topic}</div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Badge variant="outline" className="text-lg font-bold border-emerald-500/20 text-emerald-600 bg-emerald-500/10 px-2.5 py-1">
-                          {q.usage}
+                      <div className="font-medium text-foreground flex items-center gap-2">
+                        {q.title}
+                        <Badge variant="outline" className={`text-[10px] font-semibold px-1.5 py-0 ${getDifficultyColor(q.difficulty)}`}>
+                          {q.difficulty}
                         </Badge>
-                        <span className="text-sm text-muted-foreground">Exams</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {q.topic || "General"} • {q.type.replace('_', ' ')}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link to={`/instructor/questions/${q.id}`}>
+                      <div className="flex items-center justify-end gap-2">
+                        <Badge variant="outline" className="text-sm font-bold border-border text-foreground bg-muted/30 px-2.5 py-0.5">
+                          {q.pointsWeight || 10}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">Pts</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link to={`/instructor/questions/edit/${q._id}`}>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground">
                           <Eye className="w-4 h-4" />
                         </Button>

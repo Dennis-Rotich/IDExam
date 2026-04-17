@@ -20,7 +20,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { FeedbackModal } from "../../components/Student/FeedbackModal";
 import { getAssignedExamsApi } from "../../api/exam";
-import { type BrowseTest } from "@/types/exam";
+import { type BrowseTest } from "../../types/exam";
 import {
   DropdownMenu,
   DropdownMenuContent,

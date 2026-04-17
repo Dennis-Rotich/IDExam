@@ -92,7 +92,7 @@ export function QuestionEditor() {
       const isNew = activeQuestion._id === "draft" || activeQuestion._id?.startsWith("temp");
 
       if (isNew) {
-        const response = await createQuestionApi({ ...activeQuestion, _id: undefined });
+        await createQuestionApi({ ...activeQuestion, _id: undefined });
       } else {
         await updateQuestionApi(activeQuestion._id as string, activeQuestion);
       }

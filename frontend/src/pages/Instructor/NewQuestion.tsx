@@ -11,7 +11,6 @@ import { ExamMetadata } from "../../components/Instructor/ExamMetadataForm";
 import { CodeSolutionEditor } from "../../components/Instructor/CodeSolutionEditor";
 import { TestCaseManager } from "../../components/Instructor/TestCaseManager";
 import { StandardQuestionEditor } from "./StandardQuestionEditor";
-import { runCodeApi } from "../../api/submission";
 import { createQuestionApi } from "../../api/question"; 
 
 export function NewQuestion() {
@@ -19,7 +18,7 @@ export function NewQuestion() {
   const { activeQuestion, createDraft, updateActiveQuestion } = useQuestionStore();
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning, _setIsRunning] = useState(false);
 
   useEffect(() => {
     createDraft();
