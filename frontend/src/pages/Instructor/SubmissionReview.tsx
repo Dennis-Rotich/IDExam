@@ -160,7 +160,7 @@ export function InstructorSubmissionReview() {
           <div>
             <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-3">
               {submission.student?.name || "Unknown Student"} 
-              <Badge variant="outline" className={`font-medium px-2 py-0 text-[10px] capitalize ${isOfficiallyGraded ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+              <Badge variant="outline" className={`font-medium px-2 py-0 text-[10px] capitalize ${isOfficiallyGraded ? 'text-emerald-500 border-none' : 'text-amber-500 border-none'}`}>
                 {submission.status?.replace("-", " ")}
               </Badge>
             </h1>
@@ -180,7 +180,7 @@ export function InstructorSubmissionReview() {
               {submission.exam?.totalPoints !== undefined && <span className="text-sm text-muted-foreground font-sans"> / {submission.exam.totalPoints}</span>}
             </p>
             {submission.status !== "in-progress" && (
-              <Badge variant="outline" className={`mt-1 font-bold border px-2 py-0 text-[10px] ${hasPassed ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20"}`}>
+              <Badge variant="outline" className={`mt-1 font-bold border px-2 py-0 text-[10px] ${hasPassed ? "text-emerald-500 border-none" : "text-destructive border-none"}`}>
                 {hasPassed ? 'PASSED' : 'FAILED'}
               </Badge>
             )}

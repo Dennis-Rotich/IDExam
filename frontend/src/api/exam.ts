@@ -24,6 +24,16 @@ export const getExamApi = async (examId: string): Promise<ExamResponse> => {
     }
 };
 
+export const togglePublishExamApi = async (examId: string) => {
+    try {
+        const response = await apiClient.patch(`/exam/${examId}/publish`);
+        return response.data;
+    } catch (error) {
+        console.error("Toggle publish exam error:", error);
+        throw error;
+    }
+};
+
 export const getAssignedExamsApi = async (): Promise<BrowseTest[]> => {
     try {
         const response = await apiClient.get("/exam/student/assigned");

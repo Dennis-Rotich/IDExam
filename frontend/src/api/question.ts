@@ -32,9 +32,14 @@ export const getQuestionsApi = async (params: GetQuestionsParams = {}) => {
     }
 };
 
-export const createQuestionApi = async (questionData: Partial<Question>) => {
-  const response = await apiClient.post("/question", questionData);
-  return response.data;
+export const createQuestionApi = async (questionData: any) => {
+    try {
+        const response = await apiClient.post("/question/new", questionData);
+        return response.data;
+    } catch (error) {
+        console.error("Create Question API error:", error);
+        throw error;
+    }
 };
 
 export const updateQuestionApi = async (id: string, questionData: Partial<Question>) => {

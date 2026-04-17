@@ -2,18 +2,22 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Save, CalendarClock, Settings2, ShieldAlert, Loader2, Plus, 
-  X, Search, Trash2, GripVertical, ArrowUp, ArrowDown 
+  X, Search, Trash2, GripVertical, ArrowUp, ArrowDown, Code2, BookOpen
 } from 'lucide-react';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
-import { createExamApi,  } from '../../api/exam'; 
-import { getQuestionsApi } from '../../api/question';
+import { createExamApi } from '../../api/exam'; 
+// Changed to match the API used in QuestionBank.tsx
+import { getInstructorQuestionsApi } from '../../api/question';
 import { generateExamCode } from '../../utils/string';
+import { useAuth } from '../../context/AuthContext'; // Import auth to match your QuestionBank logic if needed
 
 export default function CreateExam() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   
@@ -24,32 +28,15 @@ export default function CreateExam() {
   
   const [questionsBank, setQuestionsBank] = useState<any[]>([]);
   const [isLoadingBank, setIsLoadingBank] = useState(false);
-  
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasLoadedBank, setHasLoadedBank] = useState(false);
 
-  // Fetch Questions
-  const fetchQuestions = async (pageNum: number, isNewSearch = false) => {
+  // 1. Fetch Questions (Using the exact logic from QuestionBank.tsx)
+  const loadBankQuestions = async () => {
     try {
       setIsLoadingBank(true);
-      const response = await getQuestionsApi({
-        page: pageNum,
-        limit: 15,
-        search: bankSearch,
-        tags: bankTags.trim() || undefined
-      });
-      
-      const newQuestions = response.questions || response.data || [];
-      const totalPages = response.totalPages || 1;
-
-      if (isNewSearch) {
-        setQuestionsBank(newQuestions);
-      } else {
-        setQuestionsBank(prev => [...prev, ...newQuestions]);
-      }
-      
-      setHasMore(pageNum < totalPages);
-      setPage(pageNum);
+      const data = await getInstructorQuestionsApi();
+      setQuestionsBank(Array.isArray(data) ? data : []);
+      setHasLoadedBank(true);
     } catch (error) {
       toast.error("Failed to load question bank.");
     } finally {
@@ -57,14 +44,26 @@ export default function CreateExam() {
     }
   };
 
+  // Only fetch when the modal opens for the first time
   useEffect(() => {
-    if (isBankOpen) {
-      const delayDebounceFn = setTimeout(() => {
-        fetchQuestions(1, true);
-      }, 500);
-      return () => clearTimeout(delayDebounceFn);
+    if (isBankOpen && !hasLoadedBank) {
+      loadBankQuestions();
     }
-  }, [isBankOpen, bankSearch, bankTags]);
+  }, [isBankOpen, hasLoadedBank]);
+
+  // 2. Local Filtering Logic
+  const filteredBankQuestions = questionsBank.filter((q) => {
+    const matchesSearch = 
+      (q.title || "").toLowerCase().includes(bankSearch.toLowerCase()) ||
+      (q.topic || "").toLowerCase().includes(bankSearch.toLowerCase());
+
+    const searchTags = bankTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    const matchesTags = searchTags.length === 0 || searchTags.some(searchTag => 
+      q.tags?.some((tag: string) => tag.toLowerCase().includes(searchTag))
+    );
+
+    return matchesSearch && matchesTags;
+  });
   
   const [examData, setExamData] = useState({
     title: '',
@@ -134,11 +133,12 @@ export default function CreateExam() {
         questions: questionIds,
         totalPoints: totalPoints,
         passMark: parseInt(examData.passMark) || 50,
-        isActive: !isDraft, // If draft, isActive is false
+        status: isDraft ? "draft" : "published",
+        isActive: true, 
       });
       
       toast.success(isDraft ? "Draft saved successfully!" : "Exam published successfully!");
-      navigate("/instructor/tests"); 
+      navigate("/instructor/exams"); 
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to save exam to server.");
     } finally {
@@ -147,13 +147,14 @@ export default function CreateExam() {
   };
 
   return (
-    <div className="mx-auto space-y-6 pb-12 text-foreground text-left px-2 relative">
+    <div className="mx-auto space-y-6 pb-12 text-foreground text-left px-2 relative animate-in fade-in duration-300">
       
       {/* QUESTION BANK MODAL */}
       {isBankOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="bg-card border border-border shadow-lg rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border shadow-lg rounded-xl w-full max-w-2xl h-[80vh] flex flex-col overflow-hidden">
+            
+            <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 Question Bank 
                 {isLoadingBank && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
@@ -163,56 +164,88 @@ export default function CreateExam() {
               </Button>
             </div>
             
-            <div className="p-4 border-b border-border bg-muted/30 space-y-3">
+            <div className="p-4 border-b border-border bg-muted/30 space-y-3 shrink-0">
               <div className="flex gap-3">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search questions by title..." className="pl-9 bg-background border-border" value={bankSearch} onChange={(e) => setBankSearch(e.target.value)} />
+                  <Input 
+                    placeholder="Search questions by title or topic..." 
+                    className="pl-9 bg-background border-border" 
+                    value={bankSearch} 
+                    onChange={(e) => setBankSearch(e.target.value)} 
+                  />
                 </div>
                 <div className="w-1/3">
-                  <Input placeholder="Tags (comma separated)..." className="bg-background border-border" value={bankTags} onChange={(e) => setBankTags(e.target.value)} />
+                  <Input 
+                    placeholder="Filter by tags (comma separated)..." 
+                    className="bg-background border-border" 
+                    value={bankTags} 
+                    onChange={(e) => setBankTags(e.target.value)} 
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {questionsBank.length === 0 && !isLoadingBank ? (
-                <div className="text-center p-8 text-muted-foreground text-sm">No questions found matching your criteria.</div>
+            {/* Scrolling list of filtered questions */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/50">
+              {isLoadingBank ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-3">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <p className="text-sm">Loading questions...</p>
+                </div>
+              ) : filteredBankQuestions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-3">
+                  <Search className="h-8 w-8 opacity-20" />
+                  <p className="text-sm">No questions found matching your criteria.</p>
+                </div>
               ) : (
-                <>
-                  {questionsBank.map((q) => {
-                    const isSelected = examData.questions.some(eq => eq._id === q._id);
-                    return (
-                      <div key={q._id} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg border border-transparent hover:border-border transition-all">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{q.title}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-xs text-muted-foreground capitalize">{q.type.replace('_', ' ')} • {q.pointsWeight || 0} pts</p>
+                filteredBankQuestions.map((q) => {
+                  const isSelected = examData.questions.some(eq => eq._id === q._id);
+                  const isMine = typeof q.createdBy === "string" ? q.createdBy === user?.id : (q.createdBy as any)?._id === user?.id;
+
+                  return (
+                    <div key={q._id} className={`flex items-center justify-between p-3 rounded-lg border transition-all ${isSelected ? 'border-primary/50 bg-primary/5' : 'border-border bg-card hover:border-foreground/30'}`}>
+                      <div className="flex items-start gap-3 flex-1 min-w-0 pr-4">
+                        <div className="mt-0.5 text-muted-foreground">
+                          {q.type === "CODING" ? <Code2 className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{q.title}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                              {q.type?.replace('_', ' ')} • {q.pointsWeight || 0} pts
+                            </span>
+                            {!isMine && (
+                              <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Dept. Network</span>
+                            )}
                             {q.tags && q.tags.length > 0 && (
-                              <div className="flex gap-1">
-                                {q.tags.slice(0, 2).map((tag: string) => <span key={tag} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{tag}</span>)}
+                              <div className="flex gap-1 hidden sm:flex">
+                                {q.tags.slice(0, 2).map((tag: string) => <span key={tag} className="text-[9px] bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border">{tag}</span>)}
                                 {q.tags.length > 2 && <span className="text-[9px] text-muted-foreground">+{q.tags.length - 2}</span>}
                               </div>
                             )}
                           </div>
                         </div>
-                        <Button variant={isSelected ? "destructive" : "secondary"} size="sm" onClick={() => handleToggleQuestion(q)} className="h-8">{isSelected ? "Remove" : "Add"}</Button>
                       </div>
-                    );
-                  })}
-                  {hasMore && (
-                    <div className="pt-4 pb-2 text-center">
-                      <Button variant="outline" size="sm" disabled={isLoadingBank} onClick={() => fetchQuestions(page + 1, false)}>
-                        {isLoadingBank ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Load More"}
+                      <Button 
+                        variant={isSelected ? "destructive" : "secondary"} 
+                        size="sm" 
+                        onClick={() => handleToggleQuestion(q)} 
+                        className={`h-8 shrink-0 ${!isSelected && 'bg-foreground text-background hover:bg-foreground/90'}`}
+                      >
+                        {isSelected ? "Remove" : "Add to Exam"}
                       </Button>
                     </div>
-                  )}
-                </>
+                  );
+                })
               )}
             </div>
-            <div className="p-4 border-t border-border bg-muted/10 flex justify-between items-center">
-              <span className="text-xs text-muted-foreground font-medium">{examData.questions.length} selected</span>
-              <Button onClick={() => setIsBankOpen(false)}>Done</Button>
+            
+            <div className="p-4 border-t border-border bg-muted/10 flex justify-between items-center shrink-0">
+              <span className="text-sm text-foreground font-medium bg-background border border-border px-3 py-1 rounded-full">
+                {examData.questions.length} Selected
+              </span>
+              <Button onClick={() => setIsBankOpen(false)} className="rounded-full px-6">Done</Button>
             </div>
           </div>
         </div>

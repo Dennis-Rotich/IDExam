@@ -1,70 +1,144 @@
-  import { Plus, Trash2, Eye, EyeOff } from "lucide-react";
-  import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
-  import { Button } from "../ui/button";
-  import { Input } from "../ui/input";
-  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
-  import { Badge } from "../ui/badge";
+import { useState } from "react";
+import { Plus, Trash2, Eye, EyeOff, Code } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { Switch } from "../../components/ui/switch";
+import { Label } from "../../components/ui/label";
+import { useQuestionStore } from "../../store/useQuestionStore";
+import { type TestCase } from "../../types/question";
+import { toast } from "sonner";
 
-  const MOCK_TEST_CASES = [
-    { id: 1, input: "nums = [2,7,11,15], target = 9", output: "[0,1]", isHidden: false },
-    { id: 2, input: "nums = [3,2,4], target = 6", output: "[1,2]", isHidden: false },
-    { id: 3, input: "nums = [3,3], target = 6", output: "[0,1]", isHidden: true },
-    { id: 4, input: "nums = [1,2,3,4,5], target = 10", output: "[]", isHidden: true },
-  ];
+export function TestCaseManager() {
+  const { activeQuestion, updateActiveQuestion } = useQuestionStore();
+  const testCases = activeQuestion?.testCases || [];
 
-  export function TestCaseManager() {
-    return (
-      <Card className="bg-card border-border shadow-sm text-left">
-        <CardHeader className="flex flex-row items-center justify-between py-4 border-b border-border bg-muted/30">
-          <div>
-            <CardTitle className="text-sm font-medium text-foreground">Execution Test Cases</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">Define inputs and expected outputs. Hidden cases are used for final grading.</p>
+  // Local state for the "New Test Case" form
+  const [newInput, setNewInput] = useState("");
+  const [newOutput, setNewOutput] = useState("");
+  const [isHidden, setIsHidden] = useState(false);
+  const [points, setPoints] = useState(2);
+
+  const handleAddTestCase = () => {
+    if (!newInput.trim() || !newOutput.trim()) {
+      return toast.error("Input and Expected Output are required.");
+    }
+
+    const newTestCase: TestCase = {
+      input: newInput,
+      expectedOutput: newOutput,
+      isHidden,
+      points,
+    };
+
+    updateActiveQuestion({ testCases: [...testCases, newTestCase] });
+
+    // Reset form
+    setNewInput("");
+    setNewOutput("");
+    setIsHidden(false);
+    setPoints(2);
+  };
+
+  const handleDelete = (indexToDelete: number) => {
+    const updatedTestCases = testCases.filter((_, idx) => idx !== indexToDelete);
+    updateActiveQuestion({ testCases: updatedTestCases });
+  };
+
+  // Only show test cases for CODING questions
+  if (activeQuestion?.type && activeQuestion.type !== "CODING") {
+    return null; 
+  }
+
+  return (
+    <div className="flex flex-col border border-border rounded-lg bg-card/30 overflow-hidden">
+      <div className="py-2.5 px-4 border-b border-border bg-muted/10 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <Code className="w-3.5 h-3.5" /> Test Cases & Evaluation
+      </div>
+
+      <div className="p-6 space-y-8">
+        {/* ADD NEW TEST CASE FORM */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Input (stdin)</Label>
+            <Textarea 
+              value={newInput}
+              onChange={(e) => setNewInput(e.target.value)}
+              placeholder="e.g. [1, 2, 3]\n5"
+              className="bg-background border-border font-mono text-sm h-24 resize-none"
+            />
           </div>
-          <Button size="sm" variant="outline" className="border-border hover:bg-muted text-foreground h-8">
-            <Plus className="w-4 h-4 mr-2" /> Add Test Case
-          </Button>
-        </CardHeader>
-        
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground font-medium w-[40%]">Input Arguments</TableHead>
-                <TableHead className="text-muted-foreground font-medium w-[30%]">Expected Output</TableHead>
-                <TableHead className="text-center text-muted-foreground font-medium w-[15%]">Visibility</TableHead>
-                <TableHead className="w-[15%]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {MOCK_TEST_CASES.map((tc) => (
-                <TableRow key={tc.id} className="border-border hover:bg-muted/30 transition-colors">
-                  <TableCell className="p-3">
-                    <Input defaultValue={tc.input} className="h-8 font-mono text-xs bg-transparent border-border text-foreground" />
-                  </TableCell>
-                  <TableCell className="p-3">
-                    <Input defaultValue={tc.output} className="h-8 font-mono text-xs bg-transparent border-border text-foreground" />
-                  </TableCell>
-                  <TableCell className="p-3 text-center">
-                    {tc.isHidden ? (
-                      <Badge variant="outline" className="text-amber-500 border-amber-500/20 bg-amber-500/10 font-normal text-[10px] gap-1">
-                        <EyeOff className="w-3 h-3" /> Hidden
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-emerald-500 border-emerald-500/20 bg-emerald-500/10 font-normal text-[10px] gap-1">
-                        <Eye className="w-3 h-3" /> Public
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="p-3 text-right">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Expected Output (stdout)</Label>
+            <Textarea 
+              value={newOutput}
+              onChange={(e) => setNewOutput(e.target.value)}
+              placeholder="e.g. true"
+              className="bg-background border-border font-mono text-sm h-24 resize-none"
+            />
+          </div>
+          
+          <div className="col-span-1 md:col-span-2 flex items-end justify-between bg-muted/20 p-4 rounded-lg border border-border mt-2">
+            <div className="flex gap-8">
+              <div className="flex items-center space-x-2">
+                <Switch id="hidden-mode" checked={isHidden} onCheckedChange={setIsHidden} />
+                <Label htmlFor="hidden-mode" className="text-sm font-medium cursor-pointer">
+                  Hidden Test Case
+                </Label>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Points Value</Label>
+                <Input 
+                  type="number" 
+                  value={points} 
+                  onChange={(e) => setPoints(Number(e.target.value))}
+                  className="w-20 h-8 bg-background"
+                  min={0}
+                />
+              </div>
+            </div>
+            <Button onClick={handleAddTestCase} size="sm" className="gap-2">
+              <Plus className="w-4 h-4" /> Add Test Case
+            </Button>
+          </div>
+        </div>
+
+        {/* LIST OF ADDED TEST CASES */}
+        {testCases.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">Configured Test Cases ({testCases.length})</h4>
+            <div className="grid grid-cols-1 gap-3">
+              {testCases.map((tc, idx) => (
+                <div key={idx} className="flex items-start justify-between bg-background border border-border p-3 rounded-md">
+                  <div className="flex-1 grid grid-cols-2 gap-4 font-mono text-xs">
+                    <div>
+                      <span className="text-muted-foreground uppercase text-[10px] block mb-1">Input</span>
+                      <span className="text-foreground whitespace-pre-wrap">{tc.input}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground uppercase text-[10px] block mb-1">Expected Output</span>
+                      <span className="text-emerald-500 whitespace-pre-wrap">{tc.expectedOutput}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 ml-4 shrink-0">
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs font-medium">{tc.points} pts</span>
+                      {tc.isHidden ? (
+                        <span className="flex items-center gap-1 text-[10px] text-amber-500"><EyeOff className="w-3 h-3" /> Hidden</span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><Eye className="w-3 h-3" /> Visible</span>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(idx)} className="text-destructive hover:bg-destructive/10 h-8 w-8">
                       <Trash2 className="w-4 h-4" />
                     </Button>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    );
-  }
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
