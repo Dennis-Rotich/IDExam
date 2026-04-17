@@ -19,6 +19,7 @@ const createExam = async (req, res) => {
       aiProctoringEnabled,
       aiGradingEnabled,
       assignedCohorts,
+      status 
     } = req.body;
 
     const newExam = new examModel({
@@ -34,6 +35,7 @@ const createExam = async (req, res) => {
       aiProctoringEnabled,
       aiGradingEnabled,
       assignedCohorts,
+      status 
     });
 
     await newExam.save();
@@ -45,6 +47,30 @@ const createExam = async (req, res) => {
   } catch (error) {
     console.error("Create Exam Error:", error);
     res.status(500).json({ success: false, message: "Failed to create exam" });
+  }
+};
+
+const togglePublishStatus = async (req, res) => {
+  try {
+    const { examId } = req.params;
+
+    const exam = await examModel.findById(examId);
+    if (!exam) {
+      return res.status(404).json({ success: false, message: "Exam not found" });
+    }
+
+    exam.status = exam.status === "draft" ? "published" : "draft";
+    
+    await exam.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Exam is now ${exam.status}`,
+      status: exam.status
+    });
+  } catch (error) {
+    console.error("Toggle Publish Error:", error);
+    res.status(500).json({ success: false, message: "Failed to update exam status" });
   }
 };
 
@@ -98,7 +124,14 @@ const getExam = async (req, res) => {
         message: "Access Denied: Your cohort is not assigned to this exam." 
       });
     }
-    // (Add any testCase masking logic here if needed)
+  
+    // Stop students from accessing draft exams, but let the instructor pass.
+    if (!isInstructor && exam.status !== "published") {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Exam is currently a draft and is not available to students." 
+      });
+    }
 
     res.status(200).json({ success: true, exam });
   } catch (error) {
@@ -398,6 +431,7 @@ const deleteExam = async (req, res) => {
 
 export {
   createExam,
+  togglePublishStatus,
   getExam,
   getTeacherExams,
   getExamForEdit,
