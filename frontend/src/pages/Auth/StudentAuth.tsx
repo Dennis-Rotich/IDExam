@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -8,7 +8,6 @@ import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 
 export function StudentAuth() {
-  const content = useOutletContext<any>();
   const { signUp, logIn, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
