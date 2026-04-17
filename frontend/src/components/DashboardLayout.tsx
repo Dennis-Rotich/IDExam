@@ -5,7 +5,6 @@ import { SidebarProvider } from "./ui/sidebar";
 import { AppSidebar } from "./Layout/AppSidebar";
 import { ProfileDropdown } from "./ProfileUser";
 import { useAuth } from "../context/AuthContext";
-import { Loader2 } from "lucide-react";
 
 export function DashboardLayout() {
   const { user, isLoading: authLoading, logOut } = useAuth();
