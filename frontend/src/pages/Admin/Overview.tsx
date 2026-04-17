@@ -52,8 +52,8 @@ const AUDIT_LOGS = [
 
 // --- HELPER FUNCTIONS ---
 function getAlertStyle(type: string) {
-  if (type === "critical") return "text-red-500 dark:text-red-400 bg-red-500/10 border-red-500/20";
-  return "text-amber-600 dark:text-amber-500 bg-amber-500/10 border-amber-500/20";
+  if (type === "critical") return "text-red-500 dark:text-red-400 border-red-500/20";
+  return "text-amber-600 dark:text-amber-500 border-amber-500/20";
 }
 
 function getAlertIcon(type: string) {
@@ -171,7 +171,7 @@ export function AdminOverview() {
             {RECENT_ANOMALIES.map((alert) => (
               <div key={alert.id} className="p-3 px-4 flex items-center justify-between hover:bg-muted/20 transition-colors bg-transparent">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className={`p-1.5 rounded border ${getAlertStyle(alert.type)}`}>
+                  <div className={`p-1.5 rounded ${getAlertStyle(alert.type)}`}>
                     {getAlertIcon(alert.type)}
                   </div>
                   <div className="min-w-0 pr-4">

@@ -49,9 +49,9 @@ function getRoleBadge(role: Role) {
 
 function getStatusColor(status: Status) {
   switch (status) {
-    case "Active": return "text-emerald-500 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-    case "Suspended": return "text-red-500 dark:text-red-400 bg-red-500/10 border-red-500/20";
-    case "Pending": return "text-amber-600 dark:text-amber-500 bg-amber-500/10 border-amber-500/20";
+    case "Active": return "text-emerald-500 dark:text-emerald-400 border-emerald-500/20";
+    case "Suspended": return "text-red-500 dark:text-red-600 border-red-500/20";
+    case "Pending": return "text-amber-600 dark:text-amber-500 border-amber-500/20";
   }
 }
 
@@ -212,7 +212,7 @@ export function AdminUsersPage() {
                 </span>
                 
                 <span className="hidden md:flex items-center w-24 text-left">
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${getStatusColor(user.status)}`}>
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${getStatusColor(user.status)}`}>
                     {user.status}
                   </span>
                 </span>

@@ -152,7 +152,7 @@ export function StudentOverview() {
               className="flex items-center justify-between p-3 px-4 rounded-md bg-muted/10 border border-border/50 hover:bg-muted/30 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <item.icon className={`w-4 h-4 ${item.iconColor}`} />
+                <item.icon className={`w-4 h-4 dark:text-white text-black`} />
                 <span className="font-medium text-sm text-foreground">
                   {item.title}
                 </span>

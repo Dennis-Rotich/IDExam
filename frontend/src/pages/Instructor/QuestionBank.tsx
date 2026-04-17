@@ -109,7 +109,7 @@ export function QuestionBank() {
 
   function getDifficultyColor(diff: string) {
     if (diff === "Easy") return "text-emerald-500";
-    if (diff === "Medium") return "text-amber-500";
+    if (diff === "Medium") return "";
     return "text-destructive";
   }
 
