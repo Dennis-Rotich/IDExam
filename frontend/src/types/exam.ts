@@ -87,6 +87,7 @@ export interface Exam {
   // Note: Depending on the API call, this might be an array of ObjectIds (string[])
   questions: Question[];
   isActive: boolean;
+  status: string;
   createdAt?: string;
   updatedAt?: string;
 }
