@@ -8,7 +8,8 @@ import {
     deleteExam, 
     addQuestionToExam,
     getExamSubmissions,
-    getAssignedExams
+    getAssignedExams,
+    togglePublishStatus
 } from "../controllers/examController.js";
 import { verifyToken, isTeacher } from "../middlewares/auth.js";
 
@@ -25,6 +26,8 @@ examRouter.get('/teacher/:examId/submissions', verifyToken, isTeacher, getExamSu
 
 // Create a new exam
 examRouter.post('/new', verifyToken, isTeacher, createExam);
+
+examRouter.patch("/:examId/publish", verifyToken, togglePublishStatus);
 
 // Update an existing exam
 examRouter.put('/:examId', verifyToken, isTeacher, updateExam);

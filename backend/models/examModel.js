@@ -28,6 +28,11 @@ const examSchema = new mongoose.Schema(
     totalPoints: { type: Number, default: 70 },
     passMark: { type: Number, default: 50 },
     isActive: { type: Boolean, default: true },
+    status: {
+      type: String,
+      enum: ["draft", "published", "archived"],
+      default: "draft"
+    },
     assignedCohorts: [{ type: String }],
   },
   { timestamps: true }
