@@ -26,6 +26,9 @@ async function startExamFullscreen() {
 
     examActive = true
     
+    // NEW: Call the watermark function so it appears on screen
+    applyWatermark()
+    
     clearClipboard()
     clipboardInterval = setInterval(clearClipboard, 10000)
 
@@ -129,7 +132,7 @@ window.addEventListener('beforeunload', (event) => {
 async function logViolation(reason) {
     violationCount++;
     try {
-        const response = await fetch('http://localhost:3000/api/log-violation', {
+        const response = await fetch('http://localhost:3500/api/log-violation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
