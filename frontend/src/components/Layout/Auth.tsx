@@ -56,9 +56,9 @@ export function AuthLayout() {
   }
 
   return (
-    <div className="h-screen w-full grid lg:grid-cols-2 text-left">
+    <div className="min-h-screen w-full grid lg:grid-cols-2 text-left">
       {/* LEFT PANEL: Dynamic Branding & Context (Dark Mode) */}
-      <div className="h-screen hidden lg:flex flex-col justify-between bg-[#000] p-12 xl:p-16 border-r border-[#333]">
+      <div className="hidden lg:flex flex-col justify-between bg-[#000] p-12 xl:p-16 border-r border-[#333]">
         {/* TOP: Brand & Tagline */}
         <div className="space-y-8 mb-9">
           <div className="flex items-center">
@@ -119,7 +119,7 @@ export function AuthLayout() {
       </div>
 
       {/* RIGHT PANEL: Injected Form via Outlet (Light Mode) */}
-      <div className="flex flex-col justify-center items-center bg-white p-8 sm:p-12 relative h-screen">
+      <div className="flex flex-col justify-center items-center bg-white p-8 sm:p-12 relative min-h-screen">
         {/* Wrap Outlet in a keyed div to ensure content clears properly */}
         <div key={`content-${path}`} className="w-full flex justify-center">
           <Outlet context={content} />

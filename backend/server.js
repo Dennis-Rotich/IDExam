@@ -1,147 +1,157 @@
+import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import 'dotenv/config'
-import cors from 'cors'
+import cors from 'cors';
 import connectDB from './config/mongodb.js';
 import examRouter from './routes/examRoute.js';
 import submissionRouter from './routes/submissionRoute.js';
-import studentRouter from './routes/studentRoute.js';
-import teacherRouter from './routes/teacherRoute.js';
+import userRouter from './routes/userRoute.js';
+import practiceRouter from './routes/practiceRoute.js';
+import questionRouter from './routes/questionRoute.js';
 
 // app config
 const app = express();
-const PORT = process.env.PORT || 4000
-const server = http.createServer(app)
-const io = new Server(server)
-connectDB()
+const PORT = process.env.PORT || 4000;
+const server = http.createServer(app);
 
-//middlewares
+// Enable CORS for Socket.io
+const io = new Server(server, {
+  cors: {
+    origin: "https://idexam.duckdns.org", // MUST match the frontend URL exactly
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+connectDB();
+
+// middlewares
 app.use(express.static('public'));
-app.use(express.json())
-app.use(cors())
+app.use(express.json());
+app.use(cors());
 
-// api endpoints
-app.use('/api/exam', examRouter)
-app.use('/api/submission', submissionRouter)
-app.use('/api/teacher', teacherRouter)
-app.use('/api/student', studentRouter)
+// ==========================================
+// GLOBAL API ROUTER
+const apiRouter = express.Router();
 
-// Store active exam sessions
-const EXAM_ID = 'CS101';
+// Health Check: http://localhost:4000/api
+apiRouter.get('/', (req, res) => {
+    res.status(200).json({ success: true, message: 'API WORKING WELL' });
+});
 
-// Store student states in memory
-const studentStates = {};
+// Feature Routes: http://localhost:4000/api/exam, etc.
+apiRouter.use('/exam', examRouter);
+apiRouter.use('/submission', submissionRouter);
+apiRouter.use('/user', userRouter);
+apiRouter.use('/practice', practiceRouter);
+apiRouter.use('/question', questionRouter);
 
-function createStudentCard(studentId) {
-    if (!studentStates[studentId]) {
-        studentStates[studentId] = "";
-    }
+// Mount the global router
+app.use('/api', apiRouter);
+
+
+// ==========================================
+// SOCKET.IO LOGIC
+// We now scope state by examId: examStates[examId][studentId] = "code string"
+const examStates = {};
+
+function createStudentCard(examId, studentId) {
+    if (!examStates[examId]) examStates[examId] = {};
+    if (!examStates[examId][studentId]) examStates[examId][studentId] = "";
 }
 
-function updateView(studentId, newText) {
-    // Emit reconstructed text to the teacher's dashboard
-    io.to(`${EXAM_ID}_dashboard`).emit('student_update', {
-        studentId,
-        code: newText
-    });
-}
-
-//Socket.io Connection Handler
 io.on('connection', (socket) => {
-    
-    // 1. Identify the User Role (Student vs Teacher)
-    socket.on('join_exam', (role)=>{
-        if(role == 'teacher'){
-            socket.join(`${EXAM_ID}_dashboard`);
-            console.log(`Teacher joined dashboard for ${EXAM_ID}`);
-        } else {
-            socket.join(EXAM_ID);
-            console.log(`Student ${socket.id} joined exam ${EXAM_ID}`);
+    // Dynamic Join
+    socket.on('join_exam', (payload) => {
+        // Payload is  an object: { role: 'teacher', examId: '12345' }
+        const { role, examId } = payload;
+        
+        if (!examId) return;
 
-            // Notify teacher a new student arrived
-            io.to(`${EXAM_ID}_dashboard`).emit('student_joined', socket.id);
+        // Save context directly to the socket instance for future events/disconnects
+        socket.examId = examId;
+        socket.role = role;
+
+        if (role === 'instructor') {
+            socket.join(`${examId}_dashboard`);
+            console.log(`Instructor joined dashboard for exam: ${examId}`);
+        } else {
+            socket.join(examId);
+            console.log(`Student ${socket.id} joined exam: ${examId}`);
+            // Notify the specific teacher dashboard
+            io.to(`${examId}_dashboard`).emit('student_joined', socket.id);
         }
     });
 
-    // 1. Handle Delta Updates (UPDATED WITH LOGS)
+    // 2. Dynamic Code Deltas
     socket.on('student_delta', (data) => {
-        // LOG 1: Did we receive anything at all?
-        console.log("📥 DELTA RECEIVED from:", data.studentId);
-        console.log("Raw changes array:", data.changes);
-
-        // After — always has a valid ID
+        const examId = data.examId || socket.examId;
         const studentId = data.studentId || socket.id;
         const { changes } = data;
                 
-        if (!changes) {
-            console.error("❌ ERROR: Changes array is undefined. Check student.html emit.");
-            return;
-        }
+        if (!examId || !changes) return;
 
-        createStudentCard(studentId);
+        createStudentCard(examId, studentId);
         
         let newText = "";
-
-        // Reconstruct the text safely
         changes.forEach((segment) => {
             const mode = segment[0];
             const text = segment[1];
-            
-            if (mode === 0 || mode === 1) { // 0 = keep, 1 = insert
-                newText += text;
-            }
-            // If mode is -1 (delete), we do nothing, which effectively removes it
+            if (mode === 0 || mode === 1) newText += text;
         });
 
-        // LOG 2: Did the reconstruction work?
-        console.log("🏗️ RECONSTRUCTED TEXT:", newText);
-
-        studentStates[studentId] = newText;
-        updateView(studentId, newText);
+        examStates[examId][studentId] = newText;
+        
+        // Broadcast ONLY to the specific exam's dashboard
+        io.to(`${examId}_dashboard`).emit('student_update', {
+            studentId,
+            code: newText
+        });
     });
 
-    // Handle Full Sync
-    socket.on('code_full_sync', (fullCode) => {
-        io.to(`${EXAM_ID}_dashboard`).emit('student_full_sync', {
+    // 3. Dynamic Full Sync
+    socket.on('code_full_sync', (data) => {
+        const examId = data.examId || socket.examId;
+        if (!examId) return;
+
+        io.to(`${examId}_dashboard`).emit('student_full_sync', {
             studentId: socket.id,
-            code: fullCode
-        })
-        console.log(fullCode);
-    })
+            code: data.code || data // Backwards compatibility if payload changes
+        });
+    });
 
-    // Listen for executions
+    // 4. Dynamic Execution Results
     socket.on('student_execution', (data) => {
-        const { studentId, language, output, isError } = data;
-        
-        // Ensure card exists
-        createStudentCard(studentId);
+        const examId = data.examId || socket.examId;
+        if (!examId) return;
 
-        // Update the terminal box
-        const term = document.getElementById(`term-${studentId}`);
-        if (term) {
-            term.style.color = isError ? "#ff5555" : "#55ff55"; // Red for errors, Green for success
-            term.textContent = `[${language.toUpperCase()}] > \n${output}`;
+        const { studentId, language, output, isError } = data;
+        createStudentCard(examId, studentId);
+
+        io.to(`${examId}_dashboard`).emit('student_execution_result', {
+            studentId,
+            language,
+            output,
+            isError
+        });
+    });
+
+    // 5. Clean Disconnect
+    socket.on('disconnect', () => {
+        // Because we saved socket.examId on join, we know exactly who to notify
+        if (socket.examId && socket.role !== 'teacher') {
+            io.to(`${socket.examId}_dashboard`).emit('student_left', socket.id);
             
-            // Visual flair: flash the border to catch the teacher's attention
-            const card = document.getElementById(`card-${studentId}`);
-            card.style.borderColor = "blue";
-            setTimeout(() => card.style.borderColor = "#333", 500);
+            // memory cleanup:
+            if (examStates[socket.examId] && examStates[socket.examId][socket.id]) {
+                delete examStates[socket.examId][socket.id];
+            }
         }
     });
-
-    // Handle disconnection
-    socket.on('disconnect', ()=>{
-        // Notify teacher if student leaves
-        io.to(`${EXAM_ID}_dashboard`).emit('student_left', socket.id);
-    });
-})
-
-app.get('/',(req,res)=>{
-    res.send('API WORKING WELL')
-})
+});
 
 
-server.listen(PORT, ()=>{
+server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

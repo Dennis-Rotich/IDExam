@@ -1,10 +1,18 @@
 import mongoose from "mongoose";
 
 const connectDB = async () => {
-  console.log("URI:", process.env.MONGODB_URI); // add this temporarily
-  mongoose.connection.on("connected", () => console.log("Database connected"));
-  await mongoose.connect(`${process.env.MONGODB_URI}/IDExam`);
-  console.log(`conns=ection established at ${process.env.MONGODB_URI}/IDExam`);
+  if (!process.env.MONGODB_URI) {
+    throw new Error("FATAL ERROR: MONGODB_URI is not defined in the environment.");
+  }
+
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`Database Connection Error: ${error.message}`);
+    // You MUST throw the error here so server.js knows it failed
+    throw error; 
+  }
 };
 
 export default connectDB;

@@ -1,6 +1,5 @@
 import axios from 'axios';
-// Use environment variables for the API URL, fallback to local dev server
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -35,15 +34,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       console.warn('[API Client] Unauthorized. Token expired or invalid.');
-      // Clear the dead token
-      localStorage.removeItem('tahini_auth_token');
-      
-      // Force the user back to the login screen
-      // If using React Router, you might want to use a global event or Zustand state here 
-      // instead of a hard window reload, but this guarantees security.
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'; 
-      }
+      window.dispatchEvent(new Event("session-expired")); 
     }
     return Promise.reject(error);
   }

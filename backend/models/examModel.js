@@ -1,38 +1,43 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const testCaseSchema = new mongoose.Schema({
-  input: { type: String, required: true },     
-  expectedOutput: { type: String, required: true },
-  isHidden: { type: Boolean, default: false },     
-  points: { type: Number, default: 10 }
-})
-
-const problemSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: { type: String, required: true },  
-  difficulty: { type: String, enum: ['Easy', 'Intermediate', 'Hard'] },
-  
-  allowedLanguages: [{ type: String }],             
-  
-  starterCode: {
-    type: Map,
-    of: String,
+const examSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    examCode: { type: String, required: true, unique: true }, // NEW
+    courseCode: { type: String, required: true }, // NEW
+    instructions: { type: String },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user", 
+      required: true,
+    },
+    durationInMinutes: { type: Number, required: true },
+    availableFrom: { type: Date },
+    availableUntil: { type: Date },
+    aiProctoringEnabled: { type: Boolean, default: false },
+    aiGradingEnabled: { type: Boolean, default: true },
+    
+    // Stores a list of ID strings pointing to the Question collection
+    questions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "question", 
+        required: true,
+      },
+    ],
+    totalPoints: { type: Number, default: 70 },
+    passMark: { type: Number, default: 50 },
+    isActive: { type: Boolean, default: true },
+    status: {
+      type: String,
+      enum: ["draft", "published", "archived"],
+      default: "draft"
+    },
+    assignedCohorts: [{ type: String }],
   },
-  
-  testCases: [testCaseSchema],
-  timeLimitMs: { type: Number, default: 2000 },     
-  memoryLimitKb: { type: Number, default: 256000 } 
-});
+  { timestamps: true }
+);
 
-// 1C. The Main Exam Wrapper
-const examSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
-  durationInMinutes: { type: Number, required: true },
-  problems: [problemSchema],                    
-  isActive: { type: Boolean, default: true }
-}, { timestamps: true })
+const examModel = mongoose.models.exam || mongoose.model("exam", examSchema);
 
-const examModel = mongoose.models.exam || mongoose.model('exam',examSchema)
-
-export default examModel
+export default examModel;

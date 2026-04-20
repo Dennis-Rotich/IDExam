@@ -1,0 +1,123 @@
+{
+	"info": {
+		"_postman_id": "8f927b04-4fc7-424d-94d1-f1efbd02b61e",
+		"name": "idexam",
+		"description": "### Welcome to Postman! This is your first collection. \n\nCollections are your starting point for building and testing APIs. You can use this one to:\n\n• Group related requests\n• Test your API in real-world scenarios\n• Document and share your requests\n\nUpdate the name and overview whenever you’re ready to make it yours.\n\n[Learn more about Postman Collections.](https://learning.postman.com/docs/collections/collections-overview/)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "53690026",
+		"_collection_link": "https://isaiahgrt2058-9521509.postman.co/workspace/Isaiah-Juma's-Workspace~32b0a705-46ab-48f1-8755-918e7ea10456/collection/53690026-8f927b04-4fc7-424d-94d1-f1efbd02b61e?action=share&source=collection_link&creator=53690026"
+	},
+	"item": [
+        {
+            "name": "fetch user profile",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Successful GET request\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                            "    console.log(pm.response.json());",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDUzM2VkZDJjZjg4MzA4OTI5NjRmNCIsInJvbGUiOiJpbnN0cnVjdG9yIiwiaWF0IjoxNzc1NTgxMTYzLCJleHAiOjE3NzU1OTE5NjN9.A3OlLRF10Nq8EB3cebBxMNa0Uxfh8gNvn4VtK2FGQJM",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:4000/api/user/profile",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "4000",
+                    "path": ["api", "user", "profile"]
+                }
+            }
+        },
+        {
+            "name": "get all users",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Successful GET request\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                            "    console.log(pm.response.json());",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDUzM2VkZDJjZjg4MzA4OTI5NjRmNCIsInJvbGUiOiJpbnN0cnVjdG9yIiwiaWF0IjoxNzc1NTgxMTYzLCJleHAiOjE3NzU1OTE5NjN9.A3OlLRF10Nq8EB3cebBxMNa0Uxfh8gNvn4VtK2FGQJM",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:4000/api/user/all",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "4000",
+                    "path": ["api", "user", "all"]
+                }
+            }
+        },
+        {
+            "name": "update user",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Successful PUT request\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                            "    console.log(pm.response.json());",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "PUT",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDUzM2VkZDJjZjg4MzA4OTI5NjRmNCIsInJvbGUiOiJpbnN0cnVjdG9yIiwiaWF0IjoxNzc1NTgxMTYzLCJleHAiOjE3NzU1OTE5NjN9.A3OlLRF10Nq8EB3cebBxMNa0Uxfh8gNvn4VtK2FGQJM",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"name\": \"Isaiah Juma\",\n    \"institution\": \"tAhIni University\",\n    \"avatarUrl\": \"sdfghj\",\n    \"cohort\": \"24-27\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "http://localhost:4000/api/user/profile",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "4000",
+                    "path": ["api", "user", "profile"]
+                }
+            }
+        }
+    ]
+}
